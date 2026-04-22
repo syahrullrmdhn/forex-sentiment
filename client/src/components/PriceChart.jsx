@@ -1,7 +1,5 @@
 import { useEffect, useRef } from 'react';
-import * as LightweightCharts from 'lightweight-charts';
-
-const { createChart, CrosshairMode } = LightweightCharts;
+import { createChart, CrosshairMode, AreaSeries, createSeriesMarkers } from 'lightweight-charts';
 
 export default function PriceChart({ pair, data, events }) {
   const containerRef = useRef(null);
@@ -37,7 +35,7 @@ export default function PriceChart({ pair, data, events }) {
       },
     });
 
-    const series = chart.addAreaSeries({
+    const series = chart.addSeries(AreaSeries, {
       topColor: 'rgba(34, 211, 238, 0.26)',
       bottomColor: 'rgba(34, 211, 238, 0.02)',
       lineColor: '#22d3ee',
@@ -86,17 +84,15 @@ export default function PriceChart({ pair, data, events }) {
       text: 'News',
     }));
 
-    if (typeof LightweightCharts.createSeriesMarkers === 'function') {
-      if (typeof markerApiRef.current?.setMarkers === 'function') {
-        markerApiRef.current.setMarkers(markers);
-      } else {
-        markerApiRef.current = LightweightCharts.createSeriesMarkers(seriesRef.current, markers);
-      }
+    if (typeof markerApiRef.current?.setMarkers === 'function') {
+      markerApiRef.current.setMarkers(markers);
       return;
     }
 
-    if (typeof seriesRef.current.setMarkers === 'function') {
-      seriesRef.current.setMarkers(markers);
+    try {
+      markerApiRef.current = createSeriesMarkers(seriesRef.current, markers);
+    } catch {
+      // markers API may vary across minor releases
     }
   }, [events, pair]);
 
