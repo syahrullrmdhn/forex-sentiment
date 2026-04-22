@@ -154,7 +154,6 @@ export default function App() {
         token: auth.token,
         pair: selectedPair,
       },
-      transports: ['websocket'],
     });
 
     socket.on('market:bootstrap', (payload) => {
