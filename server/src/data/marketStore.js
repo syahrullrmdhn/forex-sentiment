@@ -383,6 +383,8 @@ export function getAllPairSentiments() {
       retailBias: snapshot.sentiment.retailBias,
       newsScore: snapshot.news.score,
       newsMood: snapshot.news.mood,
+      newsEvents: snapshot.news.events,
+      priceHistory: snapshot.price.history,
       updatedAt: snapshot.updatedAt,
     });
   }

@@ -1,11 +1,4 @@
-import axios from 'axios';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import DetailModal from './DetailModal.jsx';
-import { SkeletonPulse } from './SkeletonLoading.jsx';
-
-const FAVORITES_KEY = 'forex-sentiment.favorites';
-function getFavorites() { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch { return []; } }
-function saveFavorites(list) { localStorage.setItem(FAVORITES_KEY, JSON.stringify(list)); }
 
 function formatPrice(symbol, price) {
   if (!price) return '—';
@@ -20,23 +13,46 @@ function DownloadIcon() { return <svg width="14" height="14" viewBox="0 0 24 24"
 function ArrowUpIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>; }
 function ArrowDownIcon() { return <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>; }
 function ChevronLeftIcon() { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>; }
+function ChevronDownIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>; }
+function ChevronUpIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18 15 12 9 6 15"/></svg>; }
 
-function SourceBadge({ source }) {
-  const colors = { Myfxbook: { bg: 'rgba(59,130,246,0.12)', text: '#60a5fa' }, FXSSI: { bg: 'rgba(168,85,247,0.12)', text: '#c084fc' } };
-  const c = colors[source] || colors.Myfxbook;
-  return <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: c.bg, color: c.text }}>{source}</span>;
+const FAVORITES_KEY = 'forex-sentiment.favorites';
+function getFavorites() { try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]'); } catch { return []; } }
+function saveFavorites(list) { localStorage.setItem(FAVORITES_KEY, JSON.stringify(list)); }
+
+function Sparkline({ data, width = 120, height = 32 }) {
+  if (!data?.length) return <div style={{ width, height }} />;
+  const values = data.map((d) => d.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width;
+    const y = height - ((v - min) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+  const last = values[values.length - 1];
+  const first = values[0];
+  const color = last >= first ? 'var(--accent)' : 'var(--negative)';
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={width} cy={height - ((last - min) / range) * height} r="2.5" fill={color} />
+    </svg>
+  );
 }
 
-function SentimentBar({ longPct, shortPct }) {
+function SentimentBar({ longPct }) {
+  const shortPct = 100 - longPct;
   return (
     <div className="w-full">
-      <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-        <div className="h-full transition-all duration-500" style={{ width: `${longPct}%`, background: 'var(--accent-emerald)', borderRadius: '9999px 0 0 9999px' }} />
-        <div className="h-full transition-all duration-500" style={{ width: `${shortPct}%`, background: 'var(--accent-rose)', borderRadius: '0 9999px 9999px 0' }} />
+      <div className="flex h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="h-full transition-all duration-500" style={{ width: `${longPct}%`, background: 'var(--accent)' }} />
+        <div className="h-full transition-all duration-500" style={{ width: `${shortPct}%`, background: 'rgba(255,255,255,0.1)' }} />
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-[10px] text-emerald-400">{longPct.toFixed(1)}% L</span>
-        <span className="text-[10px] text-rose-400">{shortPct.toFixed(1)}% S</span>
+        <span className="text-[10px]" style={{ color: 'var(--accent)' }}>{longPct.toFixed(1)}% L</span>
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{shortPct.toFixed(1)}% S</span>
       </div>
     </div>
   );
@@ -55,49 +71,14 @@ function exportCSV(data) {
   URL.revokeObjectURL(url);
 }
 
-function SkeletonRow() {
-  return (
-    <td colSpan={7} className="px-5 py-3">
-      <div className="flex items-center gap-4">
-        {Array.from({ length: 7 }).map((_, i) => (
-          <div key={i} className="flex-1"><SkeletonPulse className="h-3 w-full" /></div>
-        ))}
-      </div>
-    </td>
-  );
-}
-
-export default function CommunitySentimentTable({ onNavigateDashboard, onLogout, user, authHeaders }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+export default function CommunitySentimentTable({ onNavigateDashboard, onLogout, user, data: propData, loading, error }) {
   const [search, setSearch] = useState('');
   const [sortField, setSortField] = useState('symbol');
   const [sortDir, setSortDir] = useState('asc');
   const [filterOpen, setFilterOpen] = useState(false);
   const [favorites, setFavorites] = useState(getFavorites);
-  const [detailPair, setDetailPair] = useState(null);
-  const [detailData, setDetailData] = useState(null);
+  const [expanded, setExpanded] = useState(null);
   const filterRef = useRef(null);
-  const timerRef = useRef(null);
-
-  const fetchData = async () => {
-    try {
-      const res = await axios.get('/api/sentiment', { headers: authHeaders });
-      setData(res.data.data || []);
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    timerRef.current = setInterval(fetchData, 5000);
-    return () => clearInterval(timerRef.current);
-  }, [authHeaders]);
 
   useEffect(() => {
     if (!filterOpen) return;
@@ -119,11 +100,15 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
     setFilterOpen(false);
   };
 
+  const toggleExpand = (symbol) => {
+    setExpanded((prev) => prev === symbol ? null : symbol);
+  };
+
   const filteredData = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return data;
-    return data.filter((row) => row.symbol.toLowerCase().includes(q));
-  }, [data, search]);
+    if (!q) return propData || [];
+    return (propData || []).filter((row) => row.symbol.toLowerCase().includes(q));
+  }, [propData, search]);
 
   const sortedData = useMemo(() => {
     return [...filteredData].sort((a, b) => {
@@ -140,14 +125,6 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
     });
   }, [filteredData, sortField, sortDir]);
 
-  const openDetail = async (symbol) => {
-    setDetailPair(symbol);
-    try {
-      const res = await axios.get(`/api/dashboard/${encodeURIComponent(symbol)}/overview`, { headers: authHeaders });
-      setDetailData(res.data);
-    } catch { setDetailData(null); }
-  };
-
   const sortOptions = [
     { label: 'Symbol A-Z', field: 'symbol' },
     { label: 'Myfxbook Long %', field: 'myfxbookLong' },
@@ -155,17 +132,23 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
     { label: 'Avg Long %', field: 'avgLong' },
   ];
 
+  const data = propData || [];
   const favCount = favorites.length;
+
+  // Skeleton pulse helper
+  const SkeletonPulse = ({ className = '' }) => (
+    <div className={`relative overflow-hidden rounded-md bg-white/[0.04] ${className}`}>
+      <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+    </div>
+  );
 
   return (
     <main className="min-h-screen" style={{ background: 'var(--surface)' }}>
-      {detailPair && <DetailModal pair={detailPair} data={detailData} onClose={() => { setDetailPair(null); setDetailData(null); }} />}
-
       <header style={{ background: 'var(--surface-elevated)', borderBottom: '1px solid var(--border)' }}>
         <div className="mx-auto flex max-w-[1400px] items-center justify-between px-5 py-3 sm:px-8">
           <button type="button" onClick={onNavigateDashboard} className="btn-secondary flex items-center gap-1.5"><ChevronLeftIcon />Dashboard</button>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-[var(--text-muted)]">{user?.username}</span>
+            <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{user?.username}</span>
             <button type="button" onClick={onLogout} className="btn-secondary text-xs">Logout</button>
           </div>
         </div>
@@ -177,19 +160,19 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">Community Sentiment</h2>
-                <span className="badge text-[11px] text-emerald-300" style={{ background: 'var(--accent-emerald-soft)' }}>
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"/>Live
+                <h2 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>Community Sentiment</h2>
+                <span className="badge" style={{ background: 'var(--accent-soft)', color: 'var(--accent)' }}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse"/>Live
                 </span>
               </div>
-              <p className="mt-1 text-[13px] text-[var(--text-muted)]">
-                <span className="text-blue-400">Myfxbook</span> vs <span className="text-purple-400">FXSSI</span> · {data.length} pairs{favCount > 0 && <span className="ml-2 text-amber-400">★ {favCount} favorited</span>}
+              <p className="mt-1 text-[13px]" style={{ color: 'var(--text-muted)' }}>
+                {data.length} pairs{favCount > 0 && <span className="ml-2" style={{ color: 'var(--accent)' }}>★ {favCount} favorited</span>}
               </p>
             </div>
 
             <div className="flex items-center gap-2">
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"><SearchIcon/></span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}><SearchIcon/></span>
                 <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search pair..." className="input-field py-2 pl-9 pr-4 text-xs" style={{ width: '180px' }}/>
               </div>
               <button type="button" onClick={() => exportCSV(sortedData)} className="btn-secondary flex items-center gap-1.5" title="Export CSV"><DownloadIcon /><span className="hidden sm:inline">Export</span></button>
@@ -197,11 +180,11 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
                 <button type="button" onClick={() => setFilterOpen(!filterOpen)} className="btn-secondary h-8 w-8 p-0 flex items-center justify-center" title="Sort"><FilterIcon/></button>
                 {filterOpen && (
                   <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl py-1" style={{ background: 'var(--surface-elevated)', border: '1px solid var(--border-strong)', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
-                    <p className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Sort by</p>
+                    <p className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Sort by</p>
                     {sortOptions.map((opt) => (
-                      <button key={opt.field} onClick={() => handleSort(opt.field)} className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition hover:bg-white/5 ${sortField === opt.field ? 'font-semibold text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
+                      <button key={opt.field} onClick={() => handleSort(opt.field)} className={`flex w-full items-center justify-between px-4 py-2 text-left text-sm transition hover:bg-white/5 ${sortField === opt.field ? 'font-semibold' : ''}`} style={{ color: sortField === opt.field ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
                         {opt.label}
-                        {sortField === opt.field && <span className="text-xs text-[var(--text-muted)]">{sortDir === 'asc' ? '↑' : '↓'}</span>}
+                        {sortField === opt.field && <span style={{ color: 'var(--text-muted)' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>}
                       </button>
                     ))}
                   </div>
@@ -211,108 +194,189 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
           </div>
 
           {error && (
-            <div className="mx-6 mt-4 rounded-xl px-4 py-3 text-sm text-rose-300" style={{ background: 'var(--accent-rose-soft)', border: '1px solid rgba(251,113,133,0.2)' }}>{error}</div>
+            <div className="mx-6 mt-4 rounded-xl px-4 py-3 text-sm" style={{ background: 'var(--negative-soft)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--negative)' }}>{error}</div>
           )}
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px] border-collapse">
+            <table className="w-full min-w-[900px] border-collapse">
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   {['','Symbol','Myfxbook','FXSSI','Combined','Price','News'].map((h) => (
-                    <th key={h} className={`px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] ${h===''?'w-10':''}`}>{h}</th>
+                    <th key={h} className={`px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider ${h===''?'w-10':''}`} style={{ color: 'var(--text-muted)' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {loading && data.length === 0 && Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}><SkeletonRow/></tr>
-                ))}
-
-                {!loading && sortedData.length === 0 && (
-                  <tr><td colSpan={7} className="px-5 py-12 text-center text-sm text-[var(--text-muted)]">{search ? `No pairs match "${search}"` : 'No data available'}</td></tr>
-                )}
-
-                {sortedData.map((row) => (
-                  <tr key={row.symbol} className="transition-colors hover:bg-white/[0.02] cursor-pointer group" style={{ borderBottom: '1px solid var(--border)' }} onClick={() => openDetail(row.symbol)}>
-                    {/* Star */}
-                    <td className="px-5 py-4" onClick={(e) => toggleFavorite(row.symbol, e)}>
-                      <span className={`transition ${favorites.includes(row.symbol) ? 'text-amber-400' : 'text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]'}`}>
-                        <StarIcon filled={favorites.includes(row.symbol)} />
-                      </span>
-                    </td>
-                    {/* Symbol */}
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[14px] font-bold text-[var(--text-primary)]">{row.symbol.split('/')[0]}</span>
-                        <span className="text-[var(--text-muted)] text-xs">/</span>
-                        <span className="text-[13px] text-[var(--text-secondary)]">{row.symbol.split('/')[1]}</span>
-                      </div>
-                      <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{row.retailBias}</p>
-                    </td>
-                    {/* Myfxbook */}
-                    <td className="px-5 py-4">
-                      <div className="space-y-1.5">
-                        <SourceBadge source="Myfxbook" />
-                        <SentimentBar longPct={row.myfxbook?.longPct || 0} shortPct={row.myfxbook?.shortPct || 0} />
-                      </div>
-                    </td>
-                    {/* FXSSI */}
-                    <td className="px-5 py-4">
-                      <div className="space-y-1.5">
-                        <SourceBadge source="FXSSI" />
-                        <SentimentBar longPct={row.fxssi?.longPct || 0} shortPct={row.fxssi?.shortPct || 0} />
-                      </div>
-                    </td>
-                    {/* Combined */}
-                    <td className="px-5 py-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-semibold text-[var(--text-primary)]">{row.avgLongPct.toFixed(1)}%</span>
-                          <span className="text-[11px] text-[var(--text-muted)]">long</span>
-                        </div>
-                        <div className="flex h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
-                          <div className="h-full" style={{ width: `${row.avgLongPct}%`, background: 'var(--accent-emerald)', borderRadius: '9999px 0 0 9999px' }} />
-                          <div className="h-full" style={{ width: `${row.avgShortPct}%`, background: 'var(--accent-rose)', borderRadius: '0 9999px 9999px 0' }} />
-                        </div>
-                        <p className="text-[10px] text-[var(--text-muted)]">Avg: <span className={row.avgLongPct >= 50 ? 'text-emerald-400' : 'text-rose-400'}>{row.retailBias}</span></p>
-                      </div>
-                    </td>
-                    {/* Price */}
-                    <td className="px-5 py-4">
-                      <div className="space-y-0.5">
-                        <p className="text-[14px] font-semibold tabular-nums text-[var(--text-primary)]">{formatPrice(row.symbol, row.currentPrice)}</p>
-                        <div className={`flex items-center gap-1 text-[11px] ${row.changePct >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {row.changePct >= 0 ? <ArrowUpIcon/> : <ArrowDownIcon/>}
-                          <span className="tabular-nums">{row.changePct >= 0 ? '+' : ''}{row.changePct.toFixed(2)}%</span>
-                        </div>
-                      </div>
-                    </td>
-                    {/* News */}
-                    <td className="px-5 py-4">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ background: row.newsScore >= 0 ? 'var(--accent-emerald)' : 'var(--accent-rose)', boxShadow: `0 0 6px ${row.newsScore >= 0 ? 'rgba(52,211,153,0.4)' : 'rgba(251,113,133,0.4)'}` }} />
-                          <span className="text-[12px] font-medium text-[var(--text-primary)]">{row.newsMood}</span>
-                        </div>
-                        <p className="text-[11px] text-[var(--text-muted)] tabular-nums">{row.newsScore.toFixed(2)}</p>
+                {loading && data.length === 0 && Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td colSpan={7} className="px-5 py-3">
+                      <div className="flex items-center gap-4">
+                        {Array.from({ length: 7 }).map((_, j) => (
+                          <div key={j} className="flex-1"><SkeletonPulse className="h-3 w-full" /></div>
+                        ))}
                       </div>
                     </td>
                   </tr>
                 ))}
+
+                {!loading && sortedData.length === 0 && (
+                  <tr><td colSpan={7} className="px-5 py-12 text-center text-sm" style={{ color: 'var(--text-muted)' }}>{search ? `No pairs match "${search}"` : 'No data available'}</td></tr>
+                )}
+
+                {sortedData.map((row) => {
+                  const isExpanded = expanded === row.symbol;
+                  return (
+                    <>
+                      <tr key={row.symbol} className="transition-colors hover:bg-white/[0.02] cursor-pointer group" style={{ borderBottom: isExpanded ? 'none' : '1px solid var(--border)' }} onClick={() => toggleExpand(row.symbol)}>
+                        {/* Star */}
+                        <td className="px-5 py-4" onClick={(e) => toggleFavorite(row.symbol, e)}>
+                          <span className="transition" style={{ color: favorites.includes(row.symbol) ? 'var(--accent)' : 'var(--text-muted)' }}>
+                            <StarIcon filled={favorites.includes(row.symbol)} />
+                          </span>
+                        </td>
+                        {/* Symbol */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>{row.symbol.split('/')[0]}</span>
+                            <span style={{ color: 'var(--text-muted)' }}>/</span>
+                            <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{row.symbol.split('/')[1]}</span>
+                          </div>
+                          <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{row.retailBias}</p>
+                        </td>
+                        {/* Myfxbook */}
+                        <td className="px-5 py-4">
+                          <div className="space-y-1.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>Myfxbook</span>
+                            <SentimentBar longPct={row.myfxbook?.longPct || 0} />
+                          </div>
+                        </td>
+                        {/* FXSSI */}
+                        <td className="px-5 py-4">
+                          <div className="space-y-1.5">
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,255,255,0.04)', color: 'var(--text-secondary)', border: '1px dashed var(--border)' }}>FXSSI</span>
+                            <SentimentBar longPct={row.fxssi?.longPct || 0} />
+                          </div>
+                        </td>
+                        {/* Combined */}
+                        <td className="px-5 py-4">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{row.avgLongPct.toFixed(1)}%</span>
+                              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>long</span>
+                            </div>
+                            <div className="flex h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                              <div className="h-full" style={{ width: `${row.avgLongPct}%`, background: 'var(--accent)' }} />
+                              <div className="h-full" style={{ width: `${row.avgShortPct}%`, background: 'rgba(255,255,255,0.1)' }} />
+                            </div>
+                          </div>
+                        </td>
+                        {/* Price */}
+                        <td className="px-5 py-4">
+                          <div className="space-y-0.5">
+                            <p className="text-[14px] font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>{formatPrice(row.symbol, row.currentPrice)}</p>
+                            <div className="flex items-center gap-1 text-[11px]" style={{ color: row.changePct >= 0 ? 'var(--accent)' : 'var(--negative)' }}>
+                              {row.changePct >= 0 ? <ArrowUpIcon/> : <ArrowDownIcon/>}
+                              <span className="tabular-nums">{row.changePct >= 0 ? '+' : ''}{row.changePct.toFixed(2)}%</span>
+                            </div>
+                          </div>
+                        </td>
+                        {/* News + Expand */}
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="h-2 w-2 rounded-full" style={{ background: row.newsScore >= 0 ? 'var(--accent)' : 'var(--negative)' }} />
+                                <span className="text-[12px] font-medium" style={{ color: 'var(--text-primary)' }}>{row.newsMood}</span>
+                              </div>
+                              <p className="text-[11px] tabular-nums" style={{ color: 'var(--text-muted)' }}>{row.newsScore.toFixed(2)}</p>
+                            </div>
+                            <span className="transition" style={{ color: 'var(--text-muted)' }}>{isExpanded ? <ChevronUpIcon/> : <ChevronDownIcon/>}</span>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Inline Detail */}
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={7} className="px-5 pb-5">
+                            <div className="rounded-xl p-4 space-y-4" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                              {/* Top row: sparkline + metrics */}
+                              <div className="flex flex-col lg:flex-row gap-4">
+                                <div className="flex-1">
+                                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Price trend (90m)</p>
+                                  <Sparkline data={row.priceHistory || []} />
+                                </div>
+                                <div className="grid grid-cols-3 gap-3 lg:w-72">
+                                  <MetricBox label="Trend" value={row.trend || '—'} positive={row.changePct >= 0} />
+                                  <MetricBox label="Bias" value={row.retailBias || '—'} positive={row.avgLongPct >= 50} />
+                                  <MetricBox label="Mood" value={row.newsMood || '—'} />
+                                </div>
+                              </div>
+
+                              {/* Provider detail */}
+                              <div className="grid md:grid-cols-2 gap-3">
+                                <ProviderDetail provider={row.myfxbook} name="Myfxbook" />
+                                <ProviderDetail provider={row.fxssi} name="FXSSI" />
+                              </div>
+
+                              {/* News */}
+                              {row.newsEvents && row.newsEvents.length > 0 && (
+                                <div>
+                                  <p className="text-[10px] uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>Latest news</p>
+                                  <div className="grid gap-2">
+                                    {row.newsEvents.slice(0, 2).map((e, i) => (
+                                      <div key={i} className="flex items-start gap-2 rounded-lg px-3 py-2" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                                        <span className="mt-0.5 h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ background: e.sentiment === 'positive' ? 'var(--accent)' : 'var(--negative)' }} />
+                                        <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{e.title}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
           <div className="flex items-center justify-between px-6 py-3" style={{ borderTop: '1px solid var(--border)' }}>
-            <p className="text-[11px] text-[var(--text-muted)]">{sortedData.length} pairs · Auto-refresh every 5s</p>
-            <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)]">
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-blue-400"/>Myfxbook</span>
-              <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-purple-400"/>FXSSI</span>
-            </div>
+            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{sortedData.length} pairs · Auto-refresh every 5s</p>
           </div>
         </div>
       </div>
     </main>
+  );
+}
+
+function MetricBox({ label, value, positive }) {
+  const color = positive === undefined ? 'var(--text-secondary)' : positive ? 'var(--accent)' : 'var(--negative)';
+  return (
+    <div className="rounded-lg p-2.5 text-center" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+      <p className="text-[9px] uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-xs font-semibold mt-1" style={{ color }}>{value}</p>
+    </div>
+  );
+}
+
+function ProviderDetail({ provider, name }) {
+  if (!provider) return null;
+  const isDashed = name === 'FXSSI';
+  return (
+    <div className="rounded-lg p-3 space-y-2" style={{ background: 'rgba(255,255,255,0.02)', border: `1px ${isDashed ? 'dashed' : 'solid'} var(--border)` }}>
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{name}</span>
+        <span className="text-[11px] font-semibold" style={{ color: 'var(--text-primary)' }}>{provider.longPct.toFixed(1)}% / {provider.shortPct.toFixed(1)}%</span>
+      </div>
+      <div className="flex h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+        <div className="h-full" style={{ width: `${provider.longPct}%`, background: 'var(--accent)' }} />
+        <div className="h-full" style={{ width: `${provider.shortPct}%`, background: 'rgba(255,255,255,0.1)' }} />
+      </div>
+    </div>
   );
 }

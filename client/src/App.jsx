@@ -41,22 +41,23 @@ export default function App() {
   const [dashboardError, setDashboardError] = useState('');
   const [activeView, setActiveView] = useState('dashboard');
   const [toasts, setToasts] = useState([]);
+  const [sentimentData, setSentimentData] = useState([]);
+  const [sentimentLoading, setSentimentLoading] = useState(true);
+  const [sentimentError, setSentimentError] = useState('');
 
   const authHeaders = useMemo(() => (auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}), [auth?.token]);
 
-  // Toast helper
   const addToast = (toast) => {
     const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { ...toast, id }]);
   };
   const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
+  // Bootstrap auth + pairs
   useEffect(() => {
     let isCancelled = false;
     async function bootstrap() {
-      if (!auth?.token) {
-        setUser(null); setOverview(null); setPairs([]); setIsBooting(false); return;
-      }
+      if (!auth?.token) { setUser(null); setOverview(null); setPairs([]); setIsBooting(false); return; }
       try {
         const [meResponse, pairsResponse] = await Promise.all([
           axios.get('/api/auth/me', { headers: authHeaders }),
@@ -78,6 +79,7 @@ export default function App() {
     return () => { isCancelled = true; };
   }, [auth?.token, authHeaders]);
 
+  // Load overview for selected pair
   useEffect(() => {
     let isCancelled = false;
     async function loadOverview() {
@@ -96,31 +98,38 @@ export default function App() {
     return () => { isCancelled = true; };
   }, [auth?.token, authHeaders, selectedPair]);
 
+  // Load all sentiment data (shared between dashboard and community)
+  useEffect(() => {
+    let isCancelled = false;
+    async function loadSentiment() {
+      if (!auth?.token) return;
+      setSentimentLoading(true);
+      try {
+        const res = await axios.get('/api/sentiment', { headers: authHeaders });
+        if (!isCancelled) { setSentimentData(res.data.data || []); setSentimentError(''); }
+      } catch (err) {
+        if (!isCancelled) setSentimentError(err.response?.data?.message || 'Failed to load');
+      } finally {
+        if (!isCancelled) setSentimentLoading(false);
+      }
+    }
+    loadSentiment();
+    const timer = setInterval(loadSentiment, 5000);
+    return () => { isCancelled = true; clearInterval(timer); };
+  }, [auth?.token, authHeaders]);
+
   // Socket.IO + anomaly toast
   useEffect(() => {
     if (!auth?.token || !selectedPair) return;
     const socket = io('/', { auth: { token: auth.token, pair: selectedPair } });
-
-    socket.on('market:bootstrap', (payload) => {
-      setOverview(payload);
-      setDashboardError('');
-    });
-
+    socket.on('market:bootstrap', (payload) => { setOverview(payload); setDashboardError(''); });
     socket.on('market:update', (payload) => {
       setOverview(payload);
-      // Anomaly toast
       if (payload.anomaly?.active && payload.anomaly.level === 'high') {
-        addToast({
-          title: `${payload.pair}: ${payload.anomaly.title}`,
-          message: payload.anomaly.message,
-          level: 'high',
-          duration: 8000,
-        });
+        addToast({ title: `${payload.pair}: ${payload.anomaly.title}`, message: payload.anomaly.message, level: 'high', duration: 8000 });
       }
     });
-
     socket.on('connect_error', (err) => setDashboardError(err.message || 'Live stream connection failed.'));
-
     return () => { socket.disconnect(); };
   }, [auth?.token, selectedPair]);
 
@@ -141,21 +150,29 @@ export default function App() {
   function handleLogout() {
     clearStoredToken(); setAuth(null); setUser(null); setPairs([]); setOverview(null);
     setDashboardError(''); setActiveView('dashboard'); setToasts([]);
+    setSentimentData([]); setSentimentLoading(true); setSentimentError('');
   }
 
   if (!auth?.token) return <LoginScreen onSubmit={handleLogin} isSubmitting={isLoading} error={loginError} />;
-  if (isBooting || !user) return <main className="flex min-h-screen items-center justify-center px-4 text-sm text-[var(--text-muted)]">{dashboardError || 'Preparing dashboard...'}</main>;
+  if (isBooting || !user) return <main className="flex min-h-screen items-center justify-center px-4 text-sm" style={{ color: 'var(--text-muted)' }}>{dashboardError || 'Preparing dashboard...'}</main>;
 
   if (activeView === 'community') {
     return (
       <>
-        <CommunitySentimentTable user={user} authHeaders={authHeaders} onNavigateDashboard={() => setActiveView('dashboard')} onLogout={handleLogout} />
+        <CommunitySentimentTable
+          user={user}
+          data={sentimentData}
+          loading={sentimentLoading}
+          error={sentimentError}
+          onNavigateDashboard={() => setActiveView('dashboard')}
+          onLogout={handleLogout}
+        />
         <ToastNotification toasts={toasts} onDismiss={dismissToast} />
       </>
     );
   }
 
-  if (!overview) return <main className="flex min-h-screen items-center justify-center px-4 text-sm text-[var(--text-muted)]">{dashboardError || 'Loading market data...'}</main>;
+  if (!overview) return <main className="flex min-h-screen items-center justify-center px-4 text-sm" style={{ color: 'var(--text-muted)' }}>{dashboardError || 'Loading market data...'}</main>;
 
   return (
     <>
