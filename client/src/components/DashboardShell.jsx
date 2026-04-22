@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import PriceChart from './PriceChart.jsx';
 import { SkeletonCard, SkeletonChart } from './SkeletonLoading.jsx';
@@ -38,11 +39,27 @@ export default function DashboardShell({
   const [favorites, setFavorites] = useState(getFavorites);
   const [timeRange, setTimeRange] = useState('1D');
   const [mounted, setMounted] = useState(false);
+  const [eodhdStats, setEodhdStats] = useState(null);
 
   const freshnessEntries = overview?.freshness ? Object.entries(overview.freshness) : [];
   const hasStaleSource = freshnessEntries.some(([, s]) => freshnessState(s) === 'stale');
 
   useEffect(() => { setMounted(true); }, []);
+
+  // Fetch EODHD API stats
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await axios.get('/api/eodhd/stats');
+        setEodhdStats(res.data);
+      } catch {
+        // Silently fail - stats are optional
+      }
+    }
+    fetchStats();
+    const timer = setInterval(fetchStats, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleFavorite = (pair) => {
     setFavorites((prev) => {
@@ -212,6 +229,24 @@ export default function DashboardShell({
                     );
                   })}
                 </div>
+
+                {/* EODHD API Usage */}
+                {eodhdStats && (
+                  <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>EODHD API Usage</p>
+                      <span className="text-[10px]" style={{ color: eodhdStats.percentage > 80 ? 'var(--negative)' : 'var(--accent)' }}>
+                        {eodhdStats.usedToday} / {eodhdStats.limit}
+                      </span>
+                    </div>
+                    <div className="track">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${eodhdStats.percentage}%`, background: eodhdStats.percentage > 80 ? 'var(--negative)' : 'var(--accent)' }} />
+                    </div>
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                      {eodhdStats.remaining} calls remaining today
+                    </p>
+                  </div>
+                )}
               </div>
             </>
           ) : <><SkeletonCard/><SkeletonCard/></>}

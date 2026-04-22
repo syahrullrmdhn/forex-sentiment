@@ -7,7 +7,7 @@ import express from 'express';
 import { env } from './config/env.js';
 import { closeDatabase } from './db/connection.js';
 import { initializeDatabase } from './db/init.js';
-import { initializeMarketStore } from './data/marketStore.js';
+import { initializeMarketStore, startEodhdRefresh } from './data/marketStore.js';
 import authRoutes from './routes/authRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import { registerSocket } from './socket/registerSocket.js';
@@ -46,6 +46,7 @@ async function bootstrap() {
   await initializeMarketStore();
 
   registerSocket(server);
+  startEodhdRefresh();
 
   server.listen(env.port, () => {
     console.log(`Forex Sentiment server running on http://localhost:${env.port}`);

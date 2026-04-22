@@ -4,6 +4,7 @@ import {
   loadPairState,
   seedPairData,
 } from '../db/repositories/marketRepository.js';
+import { getEodhdSentiment } from '../services/eodhdService.js';
 
 const PAIR_SEEDS = [
   {
@@ -423,4 +424,53 @@ export function startMarketSimulation() {
       isTicking = false;
     }
   }, 3000);
+}
+
+// EODHD sentiment refresh - runs every 15 minutes to conserve API calls
+let eodhdTimer = null;
+
+async function refreshEodhdSentiment() {
+  console.log('[EODHD] Starting sentiment refresh for all pairs...');
+
+  for (const [pair, state] of marketState.entries()) {
+    try {
+      const eodhd = await getEodhdSentiment(pair);
+      if (eodhd) {
+        state.newsScore = eodhd.score;
+        state.newsEvents = eodhd.headlines.map((title, index) => ({
+          id: `${pair.replace('/', '-')}-eodhd-${index}`,
+          time: Math.floor(Date.now() / 1000) - index * 300,
+          title,
+          sentiment: eodhd.score >= 0 ? 'positive' : 'negative',
+        }));
+        state.lastUpdatedAt = new Date().toISOString();
+        state.freshness.eodhd.updatedAt = new Date().toISOString();
+
+        // Broadcast update
+        const snapshot = buildSnapshot(state);
+        listeners.forEach((listener) => listener(pair, snapshot));
+
+        console.log(`[EODHD] Updated ${pair}: score=${eodhd.score.toFixed(2)}, mood=${eodhd.mood}, source=${eodhd.source}`);
+      }
+    } catch (error) {
+      console.error(`[EODHD] Failed to refresh ${pair}:`, error.message);
+    }
+
+    // Small delay between pairs to avoid rate limiting
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  console.log('[EODHD] Sentiment refresh complete.');
+}
+
+export function startEodhdRefresh() {
+  if (eodhdTimer) {
+    return;
+  }
+
+  // Run immediately on startup
+  refreshEodhdSentiment();
+
+  // Then every 15 minutes
+  eodhdTimer = setInterval(refreshEodhdSentiment, 15 * 60 * 1000);
 }

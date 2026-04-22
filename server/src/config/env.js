@@ -9,6 +9,7 @@ export const env = {
   dbClient: process.env.DB_CLIENT || 'better-sqlite3',
   dbFilename: process.env.DB_FILENAME || './data/forex-sentiment.sqlite',
   databaseUrl: process.env.DATABASE_URL || '',
+  eodhdApiKey: process.env.EODHD_API_KEY || '',
   demoUsername: process.env.DEMO_USERNAME || 'demo',
   demoEmail: process.env.DEMO_EMAIL || 'demo@forex.local',
   demoPassword: process.env.DEMO_PASSWORD || 'demo123',
