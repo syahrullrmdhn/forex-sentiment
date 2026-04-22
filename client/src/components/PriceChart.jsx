@@ -7,6 +7,9 @@ export default function PriceChart({ pair, data, events }) {
   const seriesRef = useRef(null);
   const markerApiRef = useRef(null);
 
+  const isJpy = pair.includes('JPY');
+  const decimals = isJpy ? 3 : 5;
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -14,38 +17,72 @@ export default function PriceChart({ pair, data, events }) {
       autoSize: true,
       layout: {
         background: { color: 'transparent' },
-        textColor: 'var(--text-muted)',
+        textColor: '#6b7280',
         fontFamily: "'Albert Sans', sans-serif",
+        fontSize: 11,
       },
       grid: {
-        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
-        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        vertLines: { visible: false },
+        horzLines: {
+          color: 'rgba(255, 255, 255, 0.04)',
+          style: 2,
+        },
       },
       rightPriceScale: {
-        borderColor: 'rgba(255, 255, 255, 0.05)',
-        scaleMargins: { top: 0.1, bottom: 0.1 },
+        borderVisible: false,
+        scaleMargins: { top: 0.15, bottom: 0.15 },
+        entireTextOnly: true,
       },
       timeScale: {
-        borderColor: 'rgba(255, 255, 255, 0.05)',
+        borderVisible: false,
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: (time) => {
+          const d = new Date(time * 1000);
+          return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        },
       },
       crosshair: {
-        mode: CrosshairMode.Normal,
-        vertLine: { color: 'rgba(34, 211, 238, 0.15)', labelBackgroundColor: 'rgba(34, 211, 238, 0.2)' },
-        horzLine: { color: 'rgba(34, 211, 238, 0.15)', labelBackgroundColor: 'rgba(34, 211, 238, 0.2)' },
+        mode: CrosshairMode.Magnet,
+        vertLine: {
+          color: 'rgba(34, 211, 238, 0.2)',
+          width: 1,
+          style: 3,
+          labelBackgroundColor: 'rgba(34, 211, 238, 0.15)',
+          labelTextColor: '#a5f3fc',
+        },
+        horzLine: {
+          color: 'rgba(34, 211, 238, 0.2)',
+          width: 1,
+          style: 3,
+          labelBackgroundColor: 'rgba(34, 211, 238, 0.15)',
+          labelTextColor: '#a5f3fc',
+        },
       },
       handleScroll: { vertTouchDrag: false },
+      watermark: {
+        visible: true,
+        text: 'FXSENTIMENT',
+        fontSize: 14,
+        fontFamily: "'Albert Sans', sans-serif",
+        color: 'rgba(255, 255, 255, 0.04)',
+        vertAlign: 'top',
+        horzAlign: 'left',
+      },
     });
 
     const series = chart.addSeries(AreaSeries, {
-      topColor: 'rgba(34, 211, 238, 0.1)',
-      bottomColor: 'rgba(34, 211, 238, 0.01)',
+      topColor: 'rgba(34, 211, 238, 0.25)',
+      bottomColor: 'rgba(34, 211, 238, 0.02)',
       lineColor: '#22d3ee',
-      lineWidth: 1.5,
+      lineWidth: 2,
+      lineType: 2,
       priceLineVisible: false,
       lastValueVisible: true,
+      lastValueColor: '#a5f3fc',
     });
+
+    series.priceFormatter().format = (price) => price.toFixed(decimals);
 
     chartRef.current = chart;
     seriesRef.current = series;
@@ -76,7 +113,7 @@ export default function PriceChart({ pair, data, events }) {
       position: event.sentiment === 'positive' ? 'belowBar' : 'aboveBar',
       color: event.sentiment === 'positive' ? '#34d399' : '#fb923c',
       shape: 'circle',
-      size: 1,
+      size: 0.8,
     }));
 
     if (typeof markerApiRef.current?.setMarkers === 'function') {
@@ -90,23 +127,63 @@ export default function PriceChart({ pair, data, events }) {
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Price Context</p>
-          <h3 className="mt-0.5 text-lg font-semibold text-[var(--text-primary)]">{pair}</h3>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">
+            Live Price
+          </p>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">{pair}</h3>
+            {data?.length > 0 && (
+              <span className="text-xs text-[var(--text-muted)] tabular-nums">
+                {data[data.length - 1].value.toFixed(decimals)}
+              </span>
+            )}
+          </div>
         </div>
-        <span className="badge text-[10px] text-cyan-300" style={{ background: 'var(--accent-cyan-soft)' }}>
-          Event overlays
+        <span
+          className="badge text-[10px]"
+          style={{ background: 'var(--accent-cyan-soft)', color: 'var(--accent-cyan)' }}
+        >
+          Real-time
         </span>
       </div>
 
-      <div ref={containerRef} className="h-[340px] w-full" />
+      {/* Chart */}
+      <div
+        ref={containerRef}
+        className="w-full rounded-2xl"
+        style={{
+          height: '380px',
+          background: 'linear-gradient(180deg, rgba(34,211,238,0.03) 0%, transparent 60%)',
+        }}
+      />
 
-      <div className="grid gap-3 md:grid-cols-3">
+      {/* News Events */}
+      <div className="grid gap-2 md:grid-cols-3">
         {(events || []).slice(0, 3).map((event) => (
-          <div key={event.id} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
-            <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">News</p>
-            <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2">{event.title}</p>
+          <div
+            key={event.id}
+            className="rounded-xl px-3 py-2.5"
+            style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div className="flex items-center gap-1.5">
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{
+                  background: event.sentiment === 'positive' ? 'var(--accent-emerald)' : 'var(--accent-orange)',
+                  boxShadow: `0 0 6px ${event.sentiment === 'positive' ? 'rgba(52,211,153,0.4)' : 'rgba(251,146,60,0.4)'}`,
+                }}
+              />
+              <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">News</p>
+            </div>
+            <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2">
+              {event.title}
+            </p>
           </div>
         ))}
       </div>
