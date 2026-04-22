@@ -4,33 +4,23 @@ import { io } from 'socket.io-client';
 import CommunitySentimentTable from './components/CommunitySentimentTable.jsx';
 import DashboardShell from './components/DashboardShell.jsx';
 import LoginScreen from './components/LoginScreen.jsx';
+import ToastNotification from './components/ToastNotification.jsx';
 
 const TOKEN_KEY = 'forex-sentiment.token';
 const SESSION_TOKEN_KEY = 'forex-sentiment.session-token';
 
 function getStoredAuth() {
   const persistentToken = localStorage.getItem(TOKEN_KEY);
-  if (persistentToken) {
-    return { token: persistentToken, persistent: true };
-  }
-
+  if (persistentToken) return { token: persistentToken, persistent: true };
   const sessionToken = sessionStorage.getItem(SESSION_TOKEN_KEY);
-  if (sessionToken) {
-    return { token: sessionToken, persistent: false };
-  }
-
+  if (sessionToken) return { token: sessionToken, persistent: false };
   return null;
 }
 
 function storeToken(token, rememberMe) {
   localStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(SESSION_TOKEN_KEY);
-
-  if (rememberMe) {
-    localStorage.setItem(TOKEN_KEY, token);
-    return;
-  }
-
+  if (rememberMe) { localStorage.setItem(TOKEN_KEY, token); return; }
   sessionStorage.setItem(SESSION_TOKEN_KEY, token);
 }
 
@@ -50,113 +40,66 @@ export default function App() {
   const [loginError, setLoginError] = useState('');
   const [dashboardError, setDashboardError] = useState('');
   const [activeView, setActiveView] = useState('dashboard');
+  const [toasts, setToasts] = useState([]);
 
-  const authHeaders = useMemo(
-    () => (auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
-    [auth?.token],
-  );
+  const authHeaders = useMemo(() => (auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}), [auth?.token]);
+
+  // Toast helper
+  const addToast = (toast) => {
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { ...toast, id }]);
+  };
+  const dismissToast = (id) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
   useEffect(() => {
     let isCancelled = false;
-
     async function bootstrap() {
       if (!auth?.token) {
-        setUser(null);
-        setOverview(null);
-        setPairs([]);
-        setIsBooting(false);
-        return;
+        setUser(null); setOverview(null); setPairs([]); setIsBooting(false); return;
       }
-
       try {
         const [meResponse, pairsResponse] = await Promise.all([
           axios.get('/api/auth/me', { headers: authHeaders }),
           axios.get('/api/pairs', { headers: authHeaders }),
         ]);
-
-        if (isCancelled) {
-          return;
-        }
-
+        if (isCancelled) return;
         const nextPairs = pairsResponse.data.pairs || [];
         setUser(meResponse.data.user);
         setPairs(nextPairs);
-        setSelectedPair((currentPair) => {
-          if (nextPairs.some((pair) => pair.value === currentPair)) {
-            return currentPair;
-          }
-
-          return nextPairs[0]?.value || currentPair;
-        });
+        setSelectedPair((c) => nextPairs.some((p) => p.value === c) ? c : nextPairs[0]?.value || c);
         setDashboardError('');
-      } catch (error) {
-        if (!isCancelled) {
-          clearStoredToken();
-          setAuth(null);
-          setLoginError('Session expired. Please sign in again.');
-        }
+      } catch {
+        if (!isCancelled) { clearStoredToken(); setAuth(null); setLoginError('Session expired. Please sign in again.'); }
       } finally {
-        if (!isCancelled) {
-          setIsBooting(false);
-        }
+        if (!isCancelled) setIsBooting(false);
       }
     }
-
     bootstrap();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [auth?.token, authHeaders]);
 
   useEffect(() => {
     let isCancelled = false;
-
     async function loadOverview() {
-      if (!auth?.token || !selectedPair) {
-        return;
-      }
-
+      if (!auth?.token || !selectedPair) return;
       setIsLoading(true);
-
       try {
-        const response = await axios.get(`/api/dashboard/${encodeURIComponent(selectedPair)}/overview`, {
-          headers: authHeaders,
-        });
-
-        if (!isCancelled) {
-          setOverview(response.data);
-          setDashboardError('');
-        }
-      } catch (error) {
-        if (!isCancelled) {
-          setDashboardError(error.response?.data?.message || 'Unable to load dashboard data.');
-        }
+        const res = await axios.get(`/api/dashboard/${encodeURIComponent(selectedPair)}/overview`, { headers: authHeaders });
+        if (!isCancelled) { setOverview(res.data); setDashboardError(''); }
+      } catch (err) {
+        if (!isCancelled) setDashboardError(err.response?.data?.message || 'Unable to load dashboard data.');
       } finally {
-        if (!isCancelled) {
-          setIsLoading(false);
-        }
+        if (!isCancelled) setIsLoading(false);
       }
     }
-
     loadOverview();
-
-    return () => {
-      isCancelled = true;
-    };
+    return () => { isCancelled = true; };
   }, [auth?.token, authHeaders, selectedPair]);
 
+  // Socket.IO + anomaly toast
   useEffect(() => {
-    if (!auth?.token || !selectedPair) {
-      return undefined;
-    }
-
-    const socket = io('/', {
-      auth: {
-        token: auth.token,
-        pair: selectedPair,
-      },
-    });
+    if (!auth?.token || !selectedPair) return;
+    const socket = io('/', { auth: { token: auth.token, pair: selectedPair } });
 
     socket.on('market:bootstrap', (payload) => {
       setOverview(payload);
@@ -165,85 +108,69 @@ export default function App() {
 
     socket.on('market:update', (payload) => {
       setOverview(payload);
+      // Anomaly toast
+      if (payload.anomaly?.active && payload.anomaly.level === 'high') {
+        addToast({
+          title: `${payload.pair}: ${payload.anomaly.title}`,
+          message: payload.anomaly.message,
+          level: 'high',
+          duration: 8000,
+        });
+      }
     });
 
-    socket.on('connect_error', (error) => {
-      setDashboardError(error.message || 'Live stream connection failed.');
-    });
+    socket.on('connect_error', (err) => setDashboardError(err.message || 'Live stream connection failed.'));
 
-    return () => {
-      socket.disconnect();
-    };
+    return () => { socket.disconnect(); };
   }, [auth?.token, selectedPair]);
 
   async function handleLogin({ identifier, password, rememberMe }) {
-    setLoginError('');
-    setIsLoading(true);
-
+    setLoginError(''); setIsLoading(true);
     try {
-      const response = await axios.post('/api/auth/login', { identifier, password });
-      storeToken(response.data.token, rememberMe);
-      setAuth({ token: response.data.token, persistent: rememberMe });
-      setUser(response.data.user);
-    } catch (error) {
-      setLoginError(error.response?.data?.message || 'Unable to sign in.');
+      const res = await axios.post('/api/auth/login', { identifier, password });
+      storeToken(res.data.token, rememberMe);
+      setAuth({ token: res.data.token, persistent: rememberMe });
+      setUser(res.data.user);
+    } catch (err) {
+      setLoginError(err.response?.data?.message || 'Unable to sign in.');
     } finally {
       setIsLoading(false);
     }
   }
 
   function handleLogout() {
-    clearStoredToken();
-    setAuth(null);
-    setUser(null);
-    setPairs([]);
-    setOverview(null);
-    setDashboardError('');
-    setActiveView('dashboard');
+    clearStoredToken(); setAuth(null); setUser(null); setPairs([]); setOverview(null);
+    setDashboardError(''); setActiveView('dashboard'); setToasts([]);
   }
 
-  if (!auth?.token) {
-    return <LoginScreen onSubmit={handleLogin} isSubmitting={isLoading} error={loginError} />;
-  }
-
-  if (isBooting || !user) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4 text-sm text-slate-400">
-        {dashboardError || 'Preparing Forex Sentiment dashboard...'}
-      </main>
-    );
-  }
+  if (!auth?.token) return <LoginScreen onSubmit={handleLogin} isSubmitting={isLoading} error={loginError} />;
+  if (isBooting || !user) return <main className="flex min-h-screen items-center justify-center px-4 text-sm text-[var(--text-muted)]">{dashboardError || 'Preparing dashboard...'}</main>;
 
   if (activeView === 'community') {
     return (
-      <CommunitySentimentTable
-        user={user}
-        authHeaders={authHeaders}
-        onNavigateDashboard={() => setActiveView('dashboard')}
-        onLogout={handleLogout}
-      />
+      <>
+        <CommunitySentimentTable user={user} authHeaders={authHeaders} onNavigateDashboard={() => setActiveView('dashboard')} onLogout={handleLogout} />
+        <ToastNotification toasts={toasts} onDismiss={dismissToast} />
+      </>
     );
   }
 
-  if (!overview) {
-    return (
-      <main className="flex min-h-screen items-center justify-center px-4 text-sm text-slate-400">
-        {dashboardError || 'Loading market data...'}
-      </main>
-    );
-  }
+  if (!overview) return <main className="flex min-h-screen items-center justify-center px-4 text-sm text-[var(--text-muted)]">{dashboardError || 'Loading market data...'}</main>;
 
   return (
-    <DashboardShell
-      user={user}
-      pairs={pairs}
-      selectedPair={selectedPair}
-      onPairChange={setSelectedPair}
-      overview={overview}
-      onLogout={handleLogout}
-      isLoading={isLoading}
-      error={dashboardError}
-      onNavigateCommunity={() => setActiveView('community')}
-    />
+    <>
+      <DashboardShell
+        user={user}
+        pairs={pairs}
+        selectedPair={selectedPair}
+        onPairChange={setSelectedPair}
+        overview={overview}
+        onLogout={handleLogout}
+        isLoading={isLoading}
+        error={dashboardError}
+        onNavigateCommunity={() => setActiveView('community')}
+      />
+      <ToastNotification toasts={toasts} onDismiss={dismissToast} />
+    </>
   );
 }
