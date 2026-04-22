@@ -367,6 +367,28 @@ export function getOverview(pair) {
   return state ? buildSnapshot(state) : null;
 }
 
+export function getAllPairSentiments() {
+  const results = [];
+  for (const [pair, state] of marketState.entries()) {
+    const snapshot = buildSnapshot(state);
+    results.push({
+      symbol: pair,
+      currentPrice: snapshot.price.current,
+      trend: snapshot.price.trend,
+      changePct: snapshot.price.changePct,
+      myfxbook: snapshot.sentiment.providers.find((p) => p.source === 'Myfxbook'),
+      fxssi: snapshot.sentiment.providers.find((p) => p.source === 'FXSSI'),
+      avgLongPct: snapshot.sentiment.avgLongPct,
+      avgShortPct: snapshot.sentiment.avgShortPct,
+      retailBias: snapshot.sentiment.retailBias,
+      newsScore: snapshot.news.score,
+      newsMood: snapshot.news.mood,
+      updatedAt: snapshot.updatedAt,
+    });
+  }
+  return results;
+}
+
 export function onMarketUpdate(listener) {
   listeners.add(listener);
   return () => listeners.delete(listener);

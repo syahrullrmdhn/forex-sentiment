@@ -218,6 +218,7 @@ export default function App() {
     return (
       <CommunitySentimentTable
         user={user}
+        authHeaders={authHeaders}
         onNavigateDashboard={() => setActiveView('dashboard')}
         onLogout={handleLogout}
       />

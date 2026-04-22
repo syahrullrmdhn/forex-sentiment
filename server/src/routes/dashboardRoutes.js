@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getOverview, getPairs } from '../data/marketStore.js';
+import { getAllPairSentiments, getOverview, getPairs } from '../data/marketStore.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -8,6 +8,10 @@ router.use(requireAuth);
 
 router.get('/pairs', (_req, res) => {
   return res.json({ pairs: getPairs() });
+});
+
+router.get('/sentiment', (_req, res) => {
+  return res.json({ data: getAllPairSentiments() });
 });
 
 router.get('/dashboard/:pair/overview', (req, res) => {
