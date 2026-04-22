@@ -55,20 +55,24 @@ export default function DashboardShell({
   const hasStaleSource = freshnessEntries.some(([, source]) => freshnessState(source) === 'stale');
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8" style={{ background: 'var(--neo-bg-start)' }}>
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-[28px] border border-white/10 bg-slate-950/80 p-5 shadow-soft backdrop-blur sm:p-6">
+        {/* Header - Sculpted embossed panel */}
+        <header className="neo-card">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-3">
-                <span className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+                <span className="neo-badge text-cyan-200">
+                  <span className="neo-orb-cyan mr-2 inline-block h-2 w-2 rounded-full" />
                   Dark Mode Default
                 </span>
                 <FreshnessBadge stale={hasStaleSource} updatedAt={overview.updatedAt} />
               </div>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-white">Forex Sentiment Comparison Dashboard</h1>
-                <p className="mt-1 text-sm text-slate-400">
+                <h1 className="text-3xl font-semibold tracking-tight neo-text-embossed">
+                  Forex Sentiment Comparison Dashboard
+                </h1>
+                <p className="mt-1 text-sm neo-text-engraved">
                   Bandingkan retail crowding, mood berita, dan momentum harga {selectedPair} dalam satu layar.
                 </p>
               </div>
@@ -78,37 +82,40 @@ export default function DashboardShell({
               <button
                 type="button"
                 onClick={onNavigateCommunity}
-                className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:border-white/20 hover:text-white"
+                className="neo-btn flex items-center gap-2 text-sm"
                 title="Community Sentiment Analytics"
               >
                 <TableNavIcon />
                 <span>Community</span>
               </button>
 
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-                <span className="text-slate-400">Global Pair</span>
+              <label className="neo-pressed flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[var(--neo-text-secondary)]">
+                <span className="text-[var(--neo-text-muted)]">Global Pair</span>
                 <select
                   value={selectedPair}
                   onChange={(event) => onPairChange(event.target.value)}
-                  className="bg-transparent text-sm font-medium text-white outline-none"
+                  className="bg-transparent text-sm font-medium text-[var(--neo-text-primary)] outline-none"
                 >
                   {pairs.map((pair) => (
-                    <option key={pair.value} value={pair.value} className="bg-slate-950 text-white">
+                    <option key={pair.value} value={pair.value} style={{ background: 'var(--neo-surface-dark)' }}>
                       {pair.label}
                     </option>
                   ))}
                 </select>
               </label>
 
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <div className="neo-raised flex items-center gap-3 rounded-2xl px-4 py-3">
+                <div className="neo-avatar flex h-9 w-9 items-center justify-center text-xs font-bold text-cyan-300">
+                  {user.username.charAt(0).toUpperCase()}
+                </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{user.username}</p>
-                  <p className="text-xs text-slate-400">Authenticated session</p>
+                  <p className="text-sm font-medium text-[var(--neo-text-primary)]">{user.username}</p>
+                  <p className="text-xs text-[var(--neo-text-muted)]">Authenticated</p>
                 </div>
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="rounded-full border border-white/10 px-3 py-1 text-xs font-medium text-slate-300 transition hover:border-rose-400/40 hover:text-rose-200"
+                  className="rounded-full px-3 py-1 text-xs font-medium text-[var(--neo-text-muted)] transition hover:text-rose-300"
                 >
                   Logout
                 </button>
@@ -117,18 +124,19 @@ export default function DashboardShell({
           </div>
         </header>
 
+        {/* Metric Cards - 3x3 grid of embossed tiles */}
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <MetricCard
             label="Spot Price"
             value={formatPrice(selectedPair, overview.price.current)}
             hint={overview.price.trend}
-            valueTone={overview.price.changePct >= 0 ? 'text-emerald-300' : 'text-rose-300'}
+            isPositive={overview.price.changePct >= 0}
           />
           <MetricCard
             label="12-Point Move"
             value={formatPercent(overview.price.changePct)}
             hint="Price impulse"
-            valueTone={overview.price.changePct >= 0 ? 'text-emerald-300' : 'text-rose-300'}
+            isPositive={overview.price.changePct >= 0}
           />
           <MetricCard
             label="Retail Bias"
@@ -143,36 +151,38 @@ export default function DashboardShell({
         </section>
 
         {error ? (
-          <section className="rounded-3xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-sm text-rose-100">
+          <section className="neo-card-pressed border border-rose-500/20 px-5 py-4 text-sm text-rose-200">
             {error}
           </section>
         ) : null}
 
+        {/* Main Content - Chart + Side Panel */}
         <section className="grid gap-6 xl:grid-cols-[1.45fr_0.9fr]">
-          <article className="rounded-[28px] border border-white/10 bg-slate-950/80 p-5 shadow-soft backdrop-blur sm:p-6">
+          <article className="neo-chart-tray">
             <PriceChart pair={selectedPair} data={overview.price.history} events={overview.news.events} />
           </article>
 
           <div className="space-y-6">
+            {/* Sentiment Comparison - Sculpted bars */}
             <Card>
               <SectionHeading
                 title="Sentiment Comparison"
                 subtitle="Retail long/short split across providers"
                 tooltip="Comparison bars expose whether crowd positioning is aligned across Myfxbook and FXSSI."
               />
-              <div className="mt-5 space-y-4">
+              <div className="mt-5 space-y-5">
                 {overview.sentiment.providers.map((provider) => (
                   <div key={provider.source} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-white">{provider.source}</span>
-                      <span className="text-slate-400">
+                      <span className="font-medium text-[var(--neo-text-primary)]">{provider.source}</span>
+                      <span className="text-[var(--neo-text-muted)]">
                         {provider.longPct.toFixed(1)}% long / {provider.shortPct.toFixed(1)}% short
                       </span>
                     </div>
-                    <div className="h-3 overflow-hidden rounded-full bg-slate-900">
+                    <div className="neo-track h-3">
                       <div className="flex h-full">
-                        <div className="bg-emerald-400" style={{ width: `${provider.longPct}%` }} />
-                        <div className="bg-rose-400" style={{ width: `${provider.shortPct}%` }} />
+                        <div className="neo-bar-glow-cyan transition-all duration-700" style={{ width: `${provider.longPct}%` }} />
+                        <div className="neo-bar-glow-orange transition-all duration-700" style={{ width: `${provider.shortPct}%` }} />
                       </div>
                     </div>
                   </div>
@@ -180,6 +190,7 @@ export default function DashboardShell({
               </div>
             </Card>
 
+            {/* News Mood Gauge - Engraved gauge with glowing indicator */}
             <Card>
               <SectionHeading
                 title="News Mood Gauge"
@@ -189,6 +200,7 @@ export default function DashboardShell({
               <NewsMoodGauge score={overview.news.score} mood={overview.news.mood} />
             </Card>
 
+            {/* Anomaly Alert - Glowing alert card */}
             <Card>
               <SectionHeading
                 title="Anomaly Alert"
@@ -200,6 +212,7 @@ export default function DashboardShell({
           </div>
         </section>
 
+        {/* Bottom Row - Calendar + Freshness */}
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <Card>
             <SectionHeading
@@ -209,15 +222,15 @@ export default function DashboardShell({
             />
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {overview.calendar.map((event) => (
-                <article key={`${event.time}-${event.title}`} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <article key={`${event.time}-${event.title}`} className="neo-pressed rounded-2xl p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-200">
+                    <span className="neo-badge text-amber-200" style={{ boxShadow: '0 0 10px var(--neo-glow-amber-dim, rgba(251,191,36,0.2))' }}>
                       {event.impact}
                     </span>
-                    <span className="text-xs font-medium text-slate-400">{event.currency}</span>
+                    <span className="text-xs font-medium text-[var(--neo-text-muted)]">{event.currency}</span>
                   </div>
-                  <p className="mt-3 text-base font-medium text-white">{event.title}</p>
-                  <p className="mt-1 text-sm text-slate-400">{event.time}</p>
+                  <p className="mt-3 text-base font-medium text-[var(--neo-text-primary)]">{event.title}</p>
+                  <p className="mt-1 text-sm text-[var(--neo-text-muted)]">{event.time}</p>
                 </article>
               ))}
             </div>
@@ -234,18 +247,18 @@ export default function DashboardShell({
                 const state = freshnessState(source);
 
                 return (
-                  <div key={sourceName} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <div key={sourceName} className="neo-pressed flex items-center justify-between rounded-2xl px-4 py-3">
                     <div className="flex items-center gap-3">
                       <span
-                        className={`h-2.5 w-2.5 rounded-full ${state === 'fresh' ? 'bg-emerald-400' : 'bg-rose-400'}`}
+                        className={`h-3 w-3 rounded-full ${state === 'fresh' ? 'neo-orb-emerald' : 'neo-orb-rose'}`}
                         title={`Expected refresh within ${source.maxAgeSec} seconds.`}
                       />
                       <div>
-                        <p className="text-sm font-medium capitalize text-white">{sourceName}</p>
-                        <p className="text-xs text-slate-400">SLA {Math.floor(source.maxAgeSec / 60) || '<1'} min</p>
+                        <p className="text-sm font-medium capitalize text-[var(--neo-text-primary)]">{sourceName}</p>
+                        <p className="text-xs text-[var(--neo-text-muted)]">SLA {Math.floor(source.maxAgeSec / 60) || '<1'} min</p>
                       </div>
                     </div>
-                    <span className="text-sm text-slate-300">{relativeTime(source.updatedAt)}</span>
+                    <span className="text-sm text-[var(--neo-text-secondary)]">{relativeTime(source.updatedAt)}</span>
                   </div>
                 );
               })}
@@ -253,22 +266,30 @@ export default function DashboardShell({
           </Card>
         </section>
 
-        {isLoading ? <p className="px-1 text-sm text-slate-400">Refreshing market snapshot...</p> : null}
+        {isLoading ? (
+          <p className="px-1 text-sm text-[var(--neo-text-muted)]">Refreshing market snapshot...</p>
+        ) : null}
       </div>
     </main>
   );
 }
 
 function Card({ children }) {
-  return <article className="rounded-[28px] border border-white/10 bg-slate-950/80 p-5 shadow-soft backdrop-blur sm:p-6">{children}</article>;
+  return <article className="neo-card">{children}</article>;
 }
 
-function MetricCard({ label, value, hint, valueTone = 'text-white' }) {
+function MetricCard({ label, value, hint, isPositive }) {
+  const valueClass = isPositive === true
+    ? 'neo-text-glow-emerald'
+    : isPositive === false
+      ? 'neo-text-glow-rose'
+      : 'neo-text-embossed';
+
   return (
-    <article className="rounded-[24px] border border-white/10 bg-slate-950/80 p-5 shadow-soft backdrop-blur">
-      <p className="text-sm uppercase tracking-[0.22em] text-slate-500">{label}</p>
-      <p className={`mt-3 text-3xl font-semibold ${valueTone}`}>{value}</p>
-      <p className="mt-2 text-sm text-slate-400">{hint}</p>
+    <article className="neo-card group transition-all duration-300 hover:translate-y-[-2px]">
+      <p className="text-sm uppercase tracking-[0.22em] text-[var(--neo-text-muted)]">{label}</p>
+      <p className={`mt-3 text-3xl font-semibold ${valueClass}`}>{value}</p>
+      <p className="mt-2 text-sm text-[var(--neo-text-muted)]">{hint}</p>
     </article>
   );
 }
@@ -277,11 +298,11 @@ function SectionHeading({ title, subtitle, tooltip }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-xl font-semibold text-white">{title}</h2>
-        <p className="mt-1 text-sm text-slate-400">{subtitle}</p>
+        <h2 className="text-xl font-semibold neo-text-embossed">{title}</h2>
+        <p className="mt-1 text-sm text-[var(--neo-text-muted)]">{subtitle}</p>
       </div>
       <span
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-xs font-semibold text-slate-300"
+        className="neo-pressed inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-[var(--neo-text-muted)] cursor-help"
         title={tooltip}
       >
         ?
@@ -292,8 +313,8 @@ function SectionHeading({ title, subtitle, tooltip }) {
 
 function FreshnessBadge({ stale, updatedAt }) {
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${stale ? 'border-rose-400/20 bg-rose-400/10 text-rose-200' : 'border-emerald-400/20 bg-emerald-400/10 text-emerald-200'}`}>
-      <span className={`h-2 w-2 rounded-full ${stale ? 'bg-rose-400' : 'bg-emerald-400'}`} />
+    <span className={`neo-badge inline-flex items-center gap-2 text-xs font-medium ${stale ? 'text-rose-200' : 'text-emerald-200'}`}>
+      <span className={`h-2 w-2 rounded-full ${stale ? 'neo-orb-rose' : 'neo-orb-emerald'}`} />
       Last sync {relativeTime(updatedAt)}
     </span>
   );
@@ -305,41 +326,63 @@ function NewsMoodGauge({ score, mood }) {
 
   return (
     <div className="mt-5 space-y-5">
-      <div className="relative h-4 rounded-full bg-gradient-to-r from-rose-500 via-slate-700 to-emerald-400">
+      {/* Engraved track with gradient glow beneath */}
+      <div className="neo-track relative h-5">
+        <div
+          className="absolute inset-0 rounded-full opacity-30"
+          style={{
+            background: 'linear-gradient(90deg, rgba(244,63,94,0.6), rgba(100,116,139,0.3), rgba(16,185,129,0.6))',
+          }}
+        />
+        {/* Glowing thumb */}
         <span
-          className="absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-4 border-slate-950 bg-white shadow-lg"
-          style={{ left: leftPosition }}
+          className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full"
+          style={{
+            left: leftPosition,
+            background: 'radial-gradient(circle at 35% 35%, #67e8f9, #0891b2)',
+            boxShadow: `
+              0 0 12px var(--neo-glow-cyan),
+              0 0 24px var(--neo-glow-cyan-dim),
+              inset -2px -2px 4px rgba(0,0,0,0.3),
+              inset 2px 2px 4px rgba(255,255,255,0.4)
+            `,
+          }}
         />
       </div>
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-slate-500">
-        <span>Negative</span>
-        <span>Neutral</span>
-        <span>Positive</span>
+      <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-[var(--neo-text-muted)]">
+        <span className="neo-text-glow-rose">Negative</span>
+        <span className="neo-text-engraved">Neutral</span>
+        <span className="neo-text-glow-emerald">Positive</span>
       </div>
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="text-3xl font-semibold text-white">{score.toFixed(2)}</p>
-        <p className="mt-2 text-sm text-slate-400">Current read: {mood}</p>
+      <div className="neo-pressed rounded-2xl p-4">
+        <p className="text-3xl font-semibold neo-text-embossed">{score.toFixed(2)}</p>
+        <p className="mt-2 text-sm text-[var(--neo-text-muted)]">Current read: <span className="neo-text-glow-cyan">{mood}</span></p>
       </div>
     </div>
   );
 }
 
 function AnomalyAlert({ anomaly }) {
-  const variant = anomaly.active
-    ? anomaly.level === 'high'
-      ? 'border-amber-400/30 bg-amber-400/10 text-amber-100'
-      : 'border-cyan-400/30 bg-cyan-400/10 text-cyan-100'
-    : 'border-white/10 bg-white/[0.03] text-slate-200';
+  const isActive = anomaly.active;
+  const isHigh = anomaly.level === 'high';
 
   return (
-    <div className={`mt-5 rounded-3xl border p-5 ${variant}`}>
+    <div
+      className={`mt-5 rounded-3xl p-5 transition-all duration-300 ${
+        isActive
+          ? isHigh
+            ? 'neo-raised-glow-orange'
+            : 'neo-raised-glow-cyan'
+          : 'neo-pressed'
+      }`}
+    >
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold">{anomaly.title}</h3>
-        <span className="rounded-full border border-current/20 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-current">
+        <h3 className="text-lg font-semibold neo-text-embossed">{anomaly.title}</h3>
+        <span className={`neo-badge text-xs font-semibold uppercase tracking-[0.18em] ${isHigh ? 'neo-text-glow-orange' : 'neo-text-glow-cyan'}`}>
           {anomaly.level}
         </span>
       </div>
-      <p className="mt-3 text-sm leading-6 text-current/90">{anomaly.message}</p>
+      <p className="mt-3 text-sm leading-6 text-[var(--neo-text-secondary)]">{anomaly.message}</p>
     </div>
   );
 }

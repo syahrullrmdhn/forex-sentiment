@@ -77,30 +77,18 @@ function ChevronLeftIcon() {
   );
 }
 
-function TableIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-      <line x1="3" y1="9" x2="21" y2="9" />
-      <line x1="3" y1="15" x2="21" y2="15" />
-      <line x1="9" y1="3" x2="9" y2="21" />
-      <line x1="15" y1="3" x2="15" y2="21" />
-    </svg>
-  );
-}
-
 function SortOption({ label, field, active, dir, onClick }) {
   return (
     <button
       type="button"
       onClick={() => onClick(field)}
-      className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition hover:bg-gray-50 ${
-        active ? 'font-semibold text-gray-900' : 'font-medium text-gray-600'
-      }`}
+      className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
+        active ? 'font-semibold text-[var(--neo-text-primary)]' : 'font-medium text-[var(--neo-text-secondary)]'
+      } hover:bg-[var(--neo-surface-dark)]`}
     >
       {label}
       {active && dir && (
-        <span className="ml-3 text-xs text-gray-400">{dir === 'asc' ? '\u2191' : '\u2193'}</span>
+        <span className="ml-3 text-xs text-[var(--neo-text-muted)]">{dir === 'asc' ? '\u2191' : '\u2193'}</span>
       )}
     </button>
   );
@@ -112,9 +100,9 @@ function SymbolCell({ symbol }) {
   const quote = symbol.slice(slash + 1);
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[13px] font-bold text-gray-900 tracking-tight">{base}</span>
-      <span className="text-[11px] text-gray-300 font-light">/</span>
-      <span className="text-[13px] font-medium text-gray-500">{quote}</span>
+      <span className="text-[13px] font-bold text-[var(--neo-text-primary)] tracking-tight">{base}</span>
+      <span className="text-[11px] text-[var(--neo-text-muted)] font-light">/</span>
+      <span className="text-[13px] font-medium text-[var(--neo-text-secondary)]">{quote}</span>
     </div>
   );
 }
@@ -122,24 +110,20 @@ function SymbolCell({ symbol }) {
 function TrendBar({ longPct, shortPct }) {
   return (
     <div className="min-w-[160px] space-y-1.5">
-      <div className="flex h-[7px] w-full overflow-hidden rounded-full bg-gray-100">
-        <div
-          className="rounded-l-full transition-all duration-700 ease-out"
-          style={{ width: `${longPct}%`, backgroundColor: '#86efac' }}
-        />
-        <div
-          className="rounded-r-full transition-all duration-700 ease-out"
-          style={{ width: `${shortPct}%`, backgroundColor: '#fca5a5' }}
-        />
+      <div className="neo-track h-[7px]">
+        <div className="flex h-full">
+          <div className="neo-bar-glow-cyan transition-all duration-700" style={{ width: `${longPct}%` }} />
+          <div className="neo-bar-glow-orange transition-all duration-700" style={{ width: `${shortPct}%` }} />
+        </div>
       </div>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: '#86efac' }} />
-          <span className="text-[11px] font-semibold text-emerald-700">{longPct.toFixed(1)}% Long</span>
+          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: '#67e8f9', boxShadow: '0 0 4px var(--neo-glow-cyan)' }} />
+          <span className="text-[11px] font-semibold text-cyan-200">{longPct.toFixed(1)}% Long</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: '#fca5a5' }} />
-          <span className="text-[11px] font-semibold text-rose-600">{shortPct.toFixed(1)}% Short</span>
+          <span className="inline-block h-[6px] w-[6px] rounded-full" style={{ backgroundColor: '#fdba74', boxShadow: '0 0 4px var(--neo-glow-orange)' }} />
+          <span className="text-[11px] font-semibold text-orange-200">{shortPct.toFixed(1)}% Short</span>
         </div>
       </div>
     </div>
@@ -149,13 +133,13 @@ function TrendBar({ longPct, shortPct }) {
 function PopularityBar({ value }) {
   return (
     <div className="min-w-[100px] space-y-1.5">
-      <div className="h-[7px] w-full overflow-hidden rounded-full bg-gray-100">
+      <div className="neo-track h-[7px]">
         <div
-          className="rounded-full transition-all duration-700 ease-out"
-          style={{ width: `${value}%`, backgroundColor: '#fdba74' }}
+          className="neo-bar-glow-orange rounded-full transition-all duration-700"
+          style={{ width: `${value}%` }}
         />
       </div>
-      <p className="text-[11px] font-semibold text-gray-500">{value}%</p>
+      <p className="text-[11px] font-semibold text-[var(--neo-text-muted)]">{value}%</p>
     </div>
   );
 }
@@ -165,8 +149,8 @@ function AvgPriceCell({ avg, current, symbol }) {
   const isPositive = pips >= 0;
   return (
     <div className="space-y-0.5">
-      <p className="text-[13px] font-semibold text-gray-900 tabular-nums">{formatPrice(symbol, avg)}</p>
-      <p className={`text-[11px] font-semibold tabular-nums ${isPositive ? 'text-emerald-600' : 'text-rose-500'}`}>
+      <p className="text-[13px] font-semibold text-[var(--neo-text-primary)] tabular-nums">{formatPrice(symbol, avg)}</p>
+      <p className={`text-[11px] font-semibold tabular-nums ${isPositive ? 'neo-text-glow-emerald' : 'neo-text-glow-rose'}`}>
         {isPositive ? '+' : ''}{pips.toFixed(1)} pips
       </p>
     </div>
@@ -179,10 +163,10 @@ function CurrentPriceCell({ price, prev, symbol, hasAlert }) {
   return (
     <div className="flex items-center gap-3">
       <div className="space-y-0.5">
-        <p className={`text-[13px] font-bold tabular-nums transition-colors duration-300 ${isUp ? 'text-gray-900' : 'text-rose-600'}`}>
+        <p className={`text-[13px] font-bold tabular-nums transition-colors duration-300 ${isUp ? 'neo-text-embossed' : 'neo-text-glow-rose'}`}>
           {formatPrice(symbol, price)}
         </p>
-        <div className={`flex items-center gap-0.5 ${isUp ? 'text-emerald-600' : 'text-rose-500'}`}>
+        <div className={`flex items-center gap-0.5 ${isUp ? 'text-emerald-300' : 'text-rose-300'}`}>
           {isUp ? <ArrowUpIcon /> : <ArrowDownIcon />}
           <span className="text-[11px] font-semibold tabular-nums">{isUp ? '+' : ''}{change.toFixed(1)}</span>
         </div>
@@ -190,7 +174,7 @@ function CurrentPriceCell({ price, prev, symbol, hasAlert }) {
       {hasAlert && (
         <button
           type="button"
-          className="mt-1 rounded-md p-1 text-gray-300 transition-colors hover:bg-amber-50 hover:text-amber-500"
+          className="mt-1 rounded-md p-1 text-[var(--neo-text-muted)] transition-colors hover:text-amber-300"
           title="Price alert active"
         >
           <BellIcon />
@@ -205,7 +189,6 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
   const [sortField, setSortField] = useState('popularity');
   const [sortDir, setSortDir] = useState('desc');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [lastTick, setLastTick] = useState(Date.now());
   const filterRef = useRef(null);
 
   useEffect(() => {
@@ -216,7 +199,6 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
           return { ...row, previousPrice: row.currentPrice, currentPrice: newPrice };
         }),
       );
-      setLastTick(Date.now());
     }, 3000);
     return () => clearInterval(timer);
   }, []);
@@ -261,24 +243,24 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
   }, [data, sortField, sortDir]);
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
+    <main className="min-h-screen" style={{ background: 'var(--neo-bg-start)' }}>
+      <header className="neo-raised border-b border-white/5">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between px-5 py-3 sm:px-8">
           <button
             type="button"
             onClick={onNavigateDashboard}
-            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
+            className="flex items-center gap-1.5 text-sm font-medium text-[var(--neo-text-muted)] transition-colors hover:text-[var(--neo-text-primary)]"
           >
             <ChevronLeftIcon />
             <span>Dashboard</span>
           </button>
 
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">{user?.username}</span>
+            <span className="text-sm text-[var(--neo-text-muted)]">{user?.username}</span>
             <button
               type="button"
               onClick={onLogout}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700"
+              className="neo-btn text-xs px-3 py-1.5"
             >
               Logout
             </button>
@@ -287,17 +269,17 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
       </header>
 
       <div className="mx-auto max-w-[1440px] px-5 py-8 sm:px-8">
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-6 py-5">
+        <div className="neo-card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-white/5 px-6 py-5">
             <div>
               <div className="flex items-center gap-3">
-                <h2 className="text-[15px] font-bold tracking-tight text-gray-900">Community Sentiment</h2>
-                <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <h2 className="text-[15px] font-bold tracking-tight neo-text-embossed">Community Sentiment</h2>
+                <span className="flex items-center gap-1.5 neo-badge text-[11px] font-semibold text-emerald-200">
+                  <span className="h-1.5 w-1.5 rounded-full neo-orb-emerald animate-pulse" />
                   Live
                 </span>
               </div>
-              <p className="mt-1 text-[13px] text-gray-400">
+              <p className="mt-1 text-[13px] text-[var(--neo-text-muted)]">
                 Retail positioning across {data.length} pairs
               </p>
             </div>
@@ -305,14 +287,14 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
               <button
                 type="button"
                 onClick={() => setFilterOpen(!filterOpen)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-gray-400 transition-colors hover:border-gray-300 hover:text-gray-600"
+                className="neo-pressed flex h-8 w-8 items-center justify-center rounded-lg text-[var(--neo-text-muted)] transition hover:text-[var(--neo-text-primary)]"
                 title="Sort & Filter"
               >
                 <FilterIcon />
               </button>
               {filterOpen && (
-                <div className="absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.08)]">
-                  <p className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
+                <div className="neo-raised absolute right-0 top-full z-20 mt-2 w-52 overflow-hidden rounded-xl py-1">
+                  <p className="px-4 pt-2.5 pb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--neo-text-muted)]">
                     Sort by
                   </p>
                   <SortOption label="Symbol" field="symbol" active={sortField === 'symbol'} dir={sortField === 'symbol' ? sortDir : null} onClick={handleSort} />
@@ -327,23 +309,23 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/80">
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                <tr className="border-b border-white/5">
+                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--neo-text-muted)]">
                     Symbol
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--neo-text-muted)]">
                     Community Trend
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--neo-text-muted)]">
                     Symbol Popularity
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--neo-text-muted)]">
                     Avg. Short Price
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--neo-text-muted)]">
                     Avg. Long Price
                   </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-gray-400">
+                  <th className="px-6 py-3 text-left text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--neo-text-muted)]">
                     Current Price
                   </th>
                 </tr>
@@ -352,7 +334,7 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
                 {sortedData.map((row) => (
                   <tr
                     key={row.symbol}
-                    className="border-b border-gray-50 transition-colors duration-150 hover:bg-gray-50/70"
+                    className="border-b border-white/5 transition-colors duration-150 hover:bg-[rgba(50,54,74,0.3)]"
                   >
                     <td className="px-6 py-4">
                       <SymbolCell symbol={row.symbol} />
@@ -378,11 +360,11 @@ export default function CommunitySentimentTable({ onNavigateDashboard, onLogout,
             </table>
           </div>
 
-          <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3.5">
-            <p className="text-[11px] font-medium text-gray-400">
+          <div className="flex items-center justify-between border-t border-white/5 px-6 py-3.5">
+            <p className="text-[11px] font-medium text-[var(--neo-text-muted)]">
               {data.length} pairs
             </p>
-            <p className="text-[11px] text-gray-300">
+            <p className="text-[11px] text-[var(--neo-text-muted)]">
               Prices simulate live ticks every 3s
             </p>
           </div>

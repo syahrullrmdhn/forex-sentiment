@@ -11,19 +11,25 @@ export default function LoginScreen({ onSubmit, isSubmitting, error }) {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/10 bg-slate-950/80 shadow-soft backdrop-blur">
+    <main className="flex min-h-screen items-center justify-center px-4 py-12" style={{ background: 'var(--neo-bg-start)' }}>
+      <div className="w-full max-w-5xl overflow-hidden rounded-[32px] neo-raised">
         <div className="grid min-h-[680px] lg:grid-cols-[1.1fr_0.9fr]">
-          <section className="flex flex-col justify-between border-b border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-cyan-950/50 p-8 lg:border-b-0 lg:border-r lg:p-10">
+          {/* Left Panel - Sculpted promotional area */}
+          <section className="flex flex-col justify-between border-b border-white/5 p-8 lg:border-b-0 lg:border-r lg:p-10"
+            style={{
+              background: 'linear-gradient(145deg, rgba(50,54,74,0.5) 0%, rgba(34,37,58,0.8) 50%, rgba(34,37,58,0.3) 100%)',
+            }}
+          >
             <div className="space-y-5">
-              <span className="inline-flex w-fit rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">
+              <span className="neo-badge inline-flex w-fit text-cyan-200">
+                <span className="neo-orb-cyan mr-2 inline-block h-2 w-2 rounded-full" />
                 Single-Page Analysis
               </span>
               <div className="space-y-4">
-                <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-white md:text-5xl">
+                <h1 className="max-w-xl text-4xl font-semibold tracking-tight neo-text-embossed md:text-5xl">
                   Forex Sentiment Comparison Dashboard
                 </h1>
-                <p className="max-w-xl text-base leading-7 text-slate-300">
+                <p className="max-w-xl text-base leading-7 text-[var(--neo-text-secondary)]">
                   Terminal satu layar untuk membandingkan retail positioning, mood berita, dan pergerakan harga live tanpa distraksi menu tambahan.
                 </p>
               </div>
@@ -36,50 +42,51 @@ export default function LoginScreen({ onSubmit, isSubmitting, error }) {
             </div>
           </section>
 
+          {/* Right Panel - Login form */}
           <section className="flex items-center p-6 sm:p-10">
             <form onSubmit={handleSubmit} className="w-full space-y-6">
               <div className="space-y-2">
-                <p className="text-sm font-medium uppercase tracking-[0.24em] text-slate-400">Secure Login</p>
-                <h2 className="text-3xl font-semibold text-white">Masuk ke dashboard</h2>
-                <p className="text-sm text-slate-400">Demo default: `demo@forex.local` / `demo123`.</p>
+                <p className="text-sm font-medium uppercase tracking-[0.24em] text-[var(--neo-text-muted)]">Secure Login</p>
+                <h2 className="text-3xl font-semibold neo-text-embossed">Masuk ke dashboard</h2>
+                <p className="text-sm text-[var(--neo-text-muted)]">Demo default: <span className="neo-text-glow-cyan">demo@forex.local</span> / <span className="neo-text-glow-cyan">demo123</span>.</p>
               </div>
 
               <label className="block space-y-2">
-                <span className="text-sm text-slate-300">Email atau username</span>
+                <span className="text-sm text-[var(--neo-text-secondary)]">Email atau username</span>
                 <input
                   type="text"
                   value={identifier}
                   onChange={(event) => setIdentifier(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20"
+                  className="neo-input"
                   placeholder="demo@forex.local"
                   autoComplete="username"
                 />
               </label>
 
               <label className="block space-y-2">
-                <span className="text-sm text-slate-300">Password</span>
+                <span className="text-sm text-[var(--neo-text-secondary)]">Password</span>
                 <input
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20"
+                  className="neo-input"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
               </label>
 
-              <label className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+              <label className="neo-pressed flex items-center justify-between gap-4 rounded-2xl px-4 py-3 text-sm text-[var(--neo-text-secondary)]">
                 <span>Remember me</span>
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(event) => setRememberMe(event.target.checked)}
-                  className="h-4 w-4 rounded border-white/20 bg-slate-900 text-cyan-400 focus:ring-cyan-400"
+                  className="h-4 w-4 rounded border-white/20 bg-[var(--neo-surface-dark)] text-cyan-400 focus:ring-cyan-400"
                 />
               </label>
 
               {error ? (
-                <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                <div className="neo-pressed rounded-2xl border border-rose-500/20 px-4 py-3 text-sm text-rose-200">
                   {error}
                 </div>
               ) : null}
@@ -87,7 +94,7 @@ export default function LoginScreen({ onSubmit, isSubmitting, error }) {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="inline-flex w-full items-center justify-center rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="neo-btn-glow inline-flex w-full items-center justify-center"
               >
                 {isSubmitting ? 'Signing in...' : 'Open Dashboard'}
               </button>
@@ -101,10 +108,10 @@ export default function LoginScreen({ onSubmit, isSubmitting, error }) {
 
 function InfoTile({ title, value, description }) {
   return (
-    <article className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{title}</p>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-      <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p>
+    <article className="neo-pressed rounded-3xl p-4">
+      <p className="text-xs uppercase tracking-[0.2em] text-[var(--neo-text-muted)]">{title}</p>
+      <p className="mt-2 text-2xl font-semibold neo-text-glow-cyan">{value}</p>
+      <p className="mt-2 text-sm leading-6 text-[var(--neo-text-muted)]">{description}</p>
     </article>
   );
 }
