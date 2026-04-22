@@ -29,6 +29,17 @@ function freshnessState(source) {
   return ageSeconds <= source.maxAgeSec ? 'fresh' : 'stale';
 }
 
+function TableNavIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  );
+}
+
 export default function DashboardShell({
   user,
   pairs,
@@ -38,6 +49,7 @@ export default function DashboardShell({
   onLogout,
   isLoading,
   error,
+  onNavigateCommunity,
 }) {
   const freshnessEntries = Object.entries(overview.freshness);
   const hasStaleSource = freshnessEntries.some(([, source]) => freshnessState(source) === 'stale');
@@ -63,6 +75,16 @@ export default function DashboardShell({
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={onNavigateCommunity}
+                className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300 transition hover:border-white/20 hover:text-white"
+                title="Community Sentiment Analytics"
+              >
+                <TableNavIcon />
+                <span>Community</span>
+              </button>
+
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
                 <span className="text-slate-400">Global Pair</span>
                 <select

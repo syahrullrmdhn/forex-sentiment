@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
+import CommunitySentimentTable from './components/CommunitySentimentTable.jsx';
 import DashboardShell from './components/DashboardShell.jsx';
 import LoginScreen from './components/LoginScreen.jsx';
 
@@ -48,6 +49,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [dashboardError, setDashboardError] = useState('');
+  const [activeView, setActiveView] = useState('dashboard');
 
   const authHeaders = useMemo(
     () => (auth?.token ? { Authorization: `Bearer ${auth.token}` } : {}),
@@ -197,16 +199,35 @@ export default function App() {
     setPairs([]);
     setOverview(null);
     setDashboardError('');
+    setActiveView('dashboard');
   }
 
   if (!auth?.token) {
     return <LoginScreen onSubmit={handleLogin} isSubmitting={isLoading} error={loginError} />;
   }
 
-  if (isBooting || !user || !overview) {
+  if (isBooting || !user) {
     return (
       <main className="flex min-h-screen items-center justify-center px-4 text-sm text-slate-400">
         {dashboardError || 'Preparing Forex Sentiment dashboard...'}
+      </main>
+    );
+  }
+
+  if (activeView === 'community') {
+    return (
+      <CommunitySentimentTable
+        user={user}
+        onNavigateDashboard={() => setActiveView('dashboard')}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (!overview) {
+    return (
+      <main className="flex min-h-screen items-center justify-center px-4 text-sm text-slate-400">
+        {dashboardError || 'Loading market data...'}
       </main>
     );
   }
@@ -221,6 +242,7 @@ export default function App() {
       onLogout={handleLogout}
       isLoading={isLoading}
       error={dashboardError}
+      onNavigateCommunity={() => setActiveView('community')}
     />
   );
 }
