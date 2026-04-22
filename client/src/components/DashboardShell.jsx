@@ -12,15 +12,8 @@ function formatPercent(value) {
 
 function relativeTime(iso) {
   const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
-
-  if (diffSeconds < 60) {
-    return `${diffSeconds}s ago`;
-  }
-
-  if (diffSeconds < 3600) {
-    return `${Math.floor(diffSeconds / 60)}m ago`;
-  }
-
+  if (diffSeconds < 60) return `${diffSeconds}s ago`;
+  if (diffSeconds < 3600) return `${Math.floor(diffSeconds / 60)}m ago`;
   return `${Math.floor(diffSeconds / 3600)}h ago`;
 }
 
@@ -41,91 +34,72 @@ function TableNavIcon() {
 }
 
 export default function DashboardShell({
-  user,
-  pairs,
-  selectedPair,
-  onPairChange,
-  overview,
-  onLogout,
-  isLoading,
-  error,
-  onNavigateCommunity,
+  user, pairs, selectedPair, onPairChange, overview,
+  onLogout, isLoading, error, onNavigateCommunity,
 }) {
   const freshnessEntries = Object.entries(overview.freshness);
-  const hasStaleSource = freshnessEntries.some(([, source]) => freshnessState(source) === 'stale');
+  const hasStaleSource = freshnessEntries.some(([, s]) => freshnessState(s) === 'stale');
 
   return (
-    <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-8" style={{ background: 'var(--neo-bg-start)' }}>
-      <div className="mx-auto max-w-7xl space-y-6">
-        {/* Header - Sculpted embossed panel */}
-        <header className="neo-card">
+    <main className="min-h-screen" style={{ background: 'var(--surface)' }}>
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Header */}
+        <header className="card mb-6 p-5 sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="neo-badge text-cyan-200">
-                  <span className="neo-orb-cyan mr-2 inline-block h-2 w-2 rounded-full" />
-                  Dark Mode Default
+            <div>
+              <div className="flex flex-wrap items-center gap-3 mb-2">
+                <span className="badge" style={{ background: 'var(--accent-cyan-soft)', color: 'var(--accent-cyan)' }}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+                  Live Market
                 </span>
                 <FreshnessBadge stale={hasStaleSource} updatedAt={overview.updatedAt} />
               </div>
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight neo-text-embossed">
-                  Forex Sentiment Comparison Dashboard
-                </h1>
-                <p className="mt-1 text-sm neo-text-engraved">
-                  Bandingkan retail crowding, mood berita, dan momentum harga {selectedPair} dalam satu layar.
-                </p>
-              </div>
+              <h1 className="text-2xl font-semibold tracking-tight text-[var(--text-primary)]">
+                Forex Sentiment
+              </h1>
+              <p className="mt-0.5 text-sm text-[var(--text-muted)]">
+                {selectedPair} retail positioning, news mood, and price context
+              </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={onNavigateCommunity}
-                className="neo-btn flex items-center gap-2 text-sm"
-                title="Community Sentiment Analytics"
+                className="btn-secondary flex items-center gap-2"
               >
                 <TableNavIcon />
-                <span>Community</span>
+                Community
               </button>
 
-              <label className="neo-pressed flex items-center gap-3 rounded-2xl px-4 py-3 text-sm text-[var(--neo-text-secondary)]">
-                <span className="text-[var(--neo-text-muted)]">Global Pair</span>
+              <div className="relative">
                 <select
                   value={selectedPair}
-                  onChange={(event) => onPairChange(event.target.value)}
-                  className="bg-transparent text-sm font-medium text-[var(--neo-text-primary)] outline-none"
+                  onChange={(e) => onPairChange(e.target.value)}
+                  className="input-field py-2 pr-10 pl-4 appearance-none cursor-pointer"
+                  style={{ width: 'auto', minWidth: '140px' }}
                 >
                   {pairs.map((pair) => (
-                    <option key={pair.value} value={pair.value} style={{ background: 'var(--neo-surface-dark)' }}>
+                    <option key={pair.value} value={pair.value} style={{ background: 'var(--surface-elevated)' }}>
                       {pair.label}
                     </option>
                   ))}
                 </select>
-              </label>
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)]" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
 
-              <div className="neo-raised flex items-center gap-3 rounded-2xl px-4 py-3">
-                <div className="neo-avatar flex h-9 w-9 items-center justify-center text-xs font-bold text-cyan-300">
+              <div className="flex items-center gap-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold" style={{ background: 'var(--accent-cyan-soft)', color: 'var(--accent-cyan)' }}>
                   {user.username.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-[var(--neo-text-primary)]">{user.username}</p>
-                  <p className="text-xs text-[var(--neo-text-muted)]">Authenticated</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="rounded-full px-3 py-1 text-xs font-medium text-[var(--neo-text-muted)] transition hover:text-rose-300"
-                >
-                  Logout
-                </button>
+                <button type="button" onClick={onLogout} className="btn-secondary">Logout</button>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Metric Cards - 3x3 grid of embossed tiles */}
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {/* Metrics */}
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
           <MetricCard
             label="Spot Price"
             value={formatPrice(selectedPair, overview.price.current)}
@@ -150,239 +124,183 @@ export default function DashboardShell({
           />
         </section>
 
-        {error ? (
-          <section className="neo-card-pressed border border-rose-500/20 px-5 py-4 text-sm text-rose-200">
+        {error && (
+          <section className="card mb-6 border-rose-500/20 px-5 py-4 text-sm text-rose-300">
             {error}
           </section>
-        ) : null}
+        )}
 
-        {/* Main Content - Chart + Side Panel */}
-        <section className="grid gap-6 xl:grid-cols-[1.45fr_0.9fr]">
-          <article className="neo-chart-tray">
+        {/* Main Content */}
+        <section className="grid gap-6 xl:grid-cols-[1.4fr_0.9fr] mb-6">
+          <div className="card p-5 sm:p-6">
             <PriceChart pair={selectedPair} data={overview.price.history} events={overview.news.events} />
-          </article>
+          </div>
 
-          <div className="space-y-6">
-            {/* Sentiment Comparison - Sculpted bars */}
-            <Card>
+          <div className="space-y-5">
+            <div className="card p-5 sm:p-6">
               <SectionHeading
                 title="Sentiment Comparison"
-                subtitle="Retail long/short split across providers"
-                tooltip="Comparison bars expose whether crowd positioning is aligned across Myfxbook and FXSSI."
+                subtitle="Long/short split across providers"
               />
               <div className="mt-5 space-y-5">
                 {overview.sentiment.providers.map((provider) => (
                   <div key={provider.source} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium text-[var(--neo-text-primary)]">{provider.source}</span>
-                      <span className="text-[var(--neo-text-muted)]">
-                        {provider.longPct.toFixed(1)}% long / {provider.shortPct.toFixed(1)}% short
-                      </span>
+                      <span className="font-medium text-[var(--text-primary)]">{provider.source}</span>
+                      <span className="text-[var(--text-muted)] text-xs">{provider.longPct.toFixed(1)}% / {provider.shortPct.toFixed(1)}%</span>
                     </div>
-                    <div className="neo-track h-3">
+                    <div className="track h-2">
                       <div className="flex h-full">
-                        <div className="neo-bar-glow-cyan transition-all duration-700" style={{ width: `${provider.longPct}%` }} />
-                        <div className="neo-bar-glow-orange transition-all duration-700" style={{ width: `${provider.shortPct}%` }} />
+                        <div className="h-full transition-all duration-700" style={{ width: `${provider.longPct}%`, background: 'var(--accent-emerald)', borderRadius: '9999px 0 0 9999px' }} />
+                        <div className="h-full transition-all duration-700" style={{ width: `${provider.shortPct}%`, background: 'var(--accent-rose)', borderRadius: '0 9999px 9999px 0' }} />
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            </Card>
+            </div>
 
-            {/* News Mood Gauge - Engraved gauge with glowing indicator */}
-            <Card>
-              <SectionHeading
-                title="News Mood Gauge"
-                subtitle="Aggregate sentiment score from -1 to 1"
-                tooltip="This gauge compresses current news flow into a directional score for quick bias checks."
-              />
+            <div className="card p-5 sm:p-6">
+              <SectionHeading title="News Mood" subtitle="Aggregate sentiment score" />
               <NewsMoodGauge score={overview.news.score} mood={overview.news.mood} />
-            </Card>
+            </div>
 
-            {/* Anomaly Alert - Glowing alert card */}
-            <Card>
-              <SectionHeading
-                title="Anomaly Alert"
-                subtitle="Cross-source divergence monitor"
-                tooltip="Alert severity rises when retail positioning disagrees with both price and news tone."
-              />
+            <div className="card p-5 sm:p-6">
+              <SectionHeading title="Anomaly Alert" subtitle="Cross-source divergence" />
               <AnomalyAlert anomaly={overview.anomaly} />
-            </Card>
+            </div>
           </div>
         </section>
 
-        {/* Bottom Row - Calendar + Freshness */}
+        {/* Bottom Row */}
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card>
-            <SectionHeading
-              title="Mini Economic Calendar"
-              subtitle="High-impact events only"
-              tooltip="Calendar stays intentionally compact so the main analytical widgets remain visible without extra navigation."
-            />
+          <div className="card p-5 sm:p-6">
+            <SectionHeading title="Economic Calendar" subtitle="High-impact events" />
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {overview.calendar.map((event) => (
-                <article key={`${event.time}-${event.title}`} className="neo-pressed rounded-2xl p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="neo-badge text-amber-200" style={{ boxShadow: '0 0 10px var(--neo-glow-amber-dim, rgba(251,191,36,0.2))' }}>
-                      {event.impact}
-                    </span>
-                    <span className="text-xs font-medium text-[var(--neo-text-muted)]">{event.currency}</span>
+                <div key={`${event.time}-${event.title}`} className="flex items-start gap-3 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'var(--accent-amber-soft)', color: 'var(--accent-amber)' }}>
+                        {event.impact}
+                      </span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{event.currency}</span>
+                    </div>
+                    <p className="text-sm font-medium text-[var(--text-primary)] truncate">{event.title}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-0.5">{event.time}</p>
                   </div>
-                  <p className="mt-3 text-base font-medium text-[var(--neo-text-primary)]">{event.title}</p>
-                  <p className="mt-1 text-sm text-[var(--neo-text-muted)]">{event.time}</p>
-                </article>
+                </div>
               ))}
             </div>
-          </Card>
+          </div>
 
-          <Card>
-            <SectionHeading
-              title="Source Freshness"
-              subtitle="Background sync health"
-              tooltip="Small status dots show whether each upstream feed is still within its expected update window."
-            />
-            <div className="mt-5 grid gap-3">
-              {freshnessEntries.map(([sourceName, source]) => {
+          <div className="card p-5 sm:p-6">
+            <SectionHeading title="Source Health" subtitle="Data freshness" />
+            <div className="mt-5 space-y-2">
+              {freshnessEntries.map(([name, source]) => {
                 const state = freshnessState(source);
-
                 return (
-                  <div key={sourceName} className="neo-pressed flex items-center justify-between rounded-2xl px-4 py-3">
+                  <div key={name} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
                     <div className="flex items-center gap-3">
-                      <span
-                        className={`h-3 w-3 rounded-full ${state === 'fresh' ? 'neo-orb-emerald' : 'neo-orb-rose'}`}
-                        title={`Expected refresh within ${source.maxAgeSec} seconds.`}
-                      />
+                      <span className={`h-2 w-2 rounded-full ${state === 'fresh' ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ boxShadow: state === 'fresh' ? '0 0 8px rgba(52,211,153,0.4)' : '0 0 8px rgba(251,113,133,0.4)' }} />
                       <div>
-                        <p className="text-sm font-medium capitalize text-[var(--neo-text-primary)]">{sourceName}</p>
-                        <p className="text-xs text-[var(--neo-text-muted)]">SLA {Math.floor(source.maxAgeSec / 60) || '<1'} min</p>
+                        <p className="text-sm font-medium capitalize text-[var(--text-primary)]">{name}</p>
+                        <p className="text-[11px] text-[var(--text-muted)]">{Math.floor(source.maxAgeSec / 60) || '<1'} min SLA</p>
                       </div>
                     </div>
-                    <span className="text-sm text-[var(--neo-text-secondary)]">{relativeTime(source.updatedAt)}</span>
+                    <span className="text-xs text-[var(--text-secondary)]">{relativeTime(source.updatedAt)}</span>
                   </div>
                 );
               })}
             </div>
-          </Card>
+          </div>
         </section>
 
-        {isLoading ? (
-          <p className="px-1 text-sm text-[var(--neo-text-muted)]">Refreshing market snapshot...</p>
-        ) : null}
+        {isLoading && <p className="mt-4 text-xs text-[var(--text-muted)]">Refreshing...</p>}
       </div>
     </main>
   );
 }
 
-function Card({ children }) {
-  return <article className="neo-card">{children}</article>;
-}
-
 function MetricCard({ label, value, hint, isPositive }) {
-  const valueClass = isPositive === true
-    ? 'neo-text-glow-emerald'
-    : isPositive === false
-      ? 'neo-text-glow-rose'
-      : 'neo-text-embossed';
+  const valueColor = isPositive === true ? 'text-emerald-400'
+    : isPositive === false ? 'text-rose-400'
+    : 'text-[var(--text-primary)]';
 
   return (
-    <article className="neo-card group transition-all duration-300 hover:translate-y-[-2px]">
-      <p className="text-sm uppercase tracking-[0.22em] text-[var(--neo-text-muted)]">{label}</p>
-      <p className={`mt-3 text-3xl font-semibold ${valueClass}`}>{value}</p>
-      <p className="mt-2 text-sm text-[var(--neo-text-muted)]">{hint}</p>
-    </article>
+    <div className="card p-5">
+      <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-[var(--text-muted)]">{label}</p>
+      <p className={`mt-2 text-2xl font-semibold tabular-nums ${valueColor}`}>{value}</p>
+      <p className="mt-1 text-xs text-[var(--text-muted)]">{hint}</p>
+    </div>
   );
 }
 
-function SectionHeading({ title, subtitle, tooltip }) {
+function SectionHeading({ title, subtitle }) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex items-center justify-between">
       <div>
-        <h2 className="text-xl font-semibold neo-text-embossed">{title}</h2>
-        <p className="mt-1 text-sm text-[var(--neo-text-muted)]">{subtitle}</p>
+        <h2 className="text-base font-semibold text-[var(--text-primary)]">{title}</h2>
+        <p className="text-xs text-[var(--text-muted)] mt-0.5">{subtitle}</p>
       </div>
-      <span
-        className="neo-pressed inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-[var(--neo-text-muted)] cursor-help"
-        title={tooltip}
-      >
-        ?
-      </span>
     </div>
   );
 }
 
 function FreshnessBadge({ stale, updatedAt }) {
   return (
-    <span className={`neo-badge inline-flex items-center gap-2 text-xs font-medium ${stale ? 'text-rose-200' : 'text-emerald-200'}`}>
-      <span className={`h-2 w-2 rounded-full ${stale ? 'neo-orb-rose' : 'neo-orb-emerald'}`} />
-      Last sync {relativeTime(updatedAt)}
+    <span className={`badge text-[11px] ${stale ? 'text-rose-300' : 'text-emerald-300'}`} style={{ background: stale ? 'var(--accent-rose-soft)' : 'var(--accent-emerald-soft)' }}>
+      <span className={`h-1.5 w-1.5 rounded-full ${stale ? 'bg-rose-400' : 'bg-emerald-400'}`} />
+      {relativeTime(updatedAt)}
     </span>
   );
 }
 
 function NewsMoodGauge({ score, mood }) {
-  const clampedScore = Math.max(-1, Math.min(1, score));
-  const leftPosition = `${((clampedScore + 1) / 2) * 100}%`;
+  const clamped = Math.max(-1, Math.min(1, score));
+  const pos = `${((clamped + 1) / 2) * 100}%`;
 
   return (
-    <div className="mt-5 space-y-5">
-      {/* Engraved track with gradient glow beneath */}
-      <div className="neo-track relative h-5">
-        <div
-          className="absolute inset-0 rounded-full opacity-30"
-          style={{
-            background: 'linear-gradient(90deg, rgba(244,63,94,0.6), rgba(100,116,139,0.3), rgba(16,185,129,0.6))',
-          }}
-        />
-        {/* Glowing thumb */}
-        <span
-          className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{
-            left: leftPosition,
-            background: 'radial-gradient(circle at 35% 35%, #67e8f9, #0891b2)',
-            boxShadow: `
-              0 0 12px var(--neo-glow-cyan),
-              0 0 24px var(--neo-glow-cyan-dim),
-              inset -2px -2px 4px rgba(0,0,0,0.3),
-              inset 2px 2px 4px rgba(255,255,255,0.4)
-            `,
-          }}
-        />
+    <div className="mt-5 space-y-4">
+      <div className="track h-2 relative">
+        <div className="absolute inset-0 rounded-full opacity-20" style={{ background: 'linear-gradient(90deg, var(--accent-rose), var(--accent-emerald))' }} />
+        <div className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2" style={{ left: pos, background: 'var(--surface)', borderColor: 'var(--accent-cyan)', boxShadow: '0 0 12px rgba(34,211,238,0.3)' }} />
       </div>
-      <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-[var(--neo-text-muted)]">
-        <span className="neo-text-glow-rose">Negative</span>
-        <span className="neo-text-engraved">Neutral</span>
-        <span className="neo-text-glow-emerald">Positive</span>
+      <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-[var(--text-muted)]">
+        <span>Negative</span>
+        <span>Neutral</span>
+        <span>Positive</span>
       </div>
-      <div className="neo-pressed rounded-2xl p-4">
-        <p className="text-3xl font-semibold neo-text-embossed">{score.toFixed(2)}</p>
-        <p className="mt-2 text-sm text-[var(--neo-text-muted)]">Current read: <span className="neo-text-glow-cyan">{mood}</span></p>
+      <div className="flex items-baseline gap-3">
+        <span className="text-2xl font-semibold text-[var(--text-primary)]">{score.toFixed(2)}</span>
+        <span className="text-sm text-[var(--accent-cyan)]">{mood}</span>
       </div>
     </div>
   );
 }
 
 function AnomalyAlert({ anomaly }) {
-  const isActive = anomaly.active;
-  const isHigh = anomaly.level === 'high';
+  if (!anomaly.active) {
+    return (
+      <div className="mt-4 rounded-xl px-4 py-3 text-sm text-[var(--text-muted)]" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+        {anomaly.message}
+      </div>
+    );
+  }
 
+  const isHigh = anomaly.level === 'high';
   return (
-    <div
-      className={`mt-5 rounded-3xl p-5 transition-all duration-300 ${
-        isActive
-          ? isHigh
-            ? 'neo-raised-glow-orange'
-            : 'neo-raised-glow-cyan'
-          : 'neo-pressed'
-      }`}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold neo-text-embossed">{anomaly.title}</h3>
-        <span className={`neo-badge text-xs font-semibold uppercase tracking-[0.18em] ${isHigh ? 'neo-text-glow-orange' : 'neo-text-glow-cyan'}`}>
+    <div className="mt-4 rounded-xl px-4 py-3" style={{
+      background: isHigh ? 'var(--accent-orange-soft)' : 'var(--accent-cyan-soft)',
+      border: `1px solid ${isHigh ? 'rgba(251,146,60,0.2)' : 'rgba(34,211,238,0.2)'}`,
+    }}>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className={`text-sm font-semibold ${isHigh ? 'text-orange-300' : 'text-cyan-300'}`}>{anomaly.title}</h3>
+        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.1)', color: isHigh ? 'var(--accent-orange)' : 'var(--accent-cyan)' }}>
           {anomaly.level}
         </span>
       </div>
-      <p className="mt-3 text-sm leading-6 text-[var(--neo-text-secondary)]">{anomaly.message}</p>
+      <p className="mt-1.5 text-xs text-[var(--text-secondary)] leading-relaxed">{anomaly.message}</p>
     </div>
   );
 }

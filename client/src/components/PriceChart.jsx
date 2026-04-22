@@ -8,60 +8,49 @@ export default function PriceChart({ pair, data, events }) {
   const markerApiRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current) {
-      return undefined;
-    }
+    if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
       autoSize: true,
       layout: {
         background: { color: 'transparent' },
-        textColor: '#9fa8da',
+        textColor: 'var(--text-muted)',
+        fontFamily: "'Albert Sans', sans-serif",
       },
       grid: {
-        vertLines: { color: 'rgba(42, 45, 62, 0.5)' },
-        horzLines: { color: 'rgba(42, 45, 62, 0.5)' },
+        vertLines: { color: 'rgba(255, 255, 255, 0.03)' },
+        horzLines: { color: 'rgba(255, 255, 255, 0.03)' },
       },
       rightPriceScale: {
-        borderColor: 'rgba(60, 65, 90, 0.3)',
+        borderColor: 'rgba(255, 255, 255, 0.05)',
+        scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: 'rgba(60, 65, 90, 0.3)',
+        borderColor: 'rgba(255, 255, 255, 0.05)',
         timeVisible: true,
         secondsVisible: false,
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: {
-          color: 'rgba(34, 211, 238, 0.2)',
-          labelBackgroundColor: 'rgba(34, 211, 238, 0.3)',
-        },
-        horzLine: {
-          color: 'rgba(34, 211, 238, 0.2)',
-          labelBackgroundColor: 'rgba(34, 211, 238, 0.3)',
-        },
+        vertLine: { color: 'rgba(34, 211, 238, 0.15)', labelBackgroundColor: 'rgba(34, 211, 238, 0.2)' },
+        horzLine: { color: 'rgba(34, 211, 238, 0.15)', labelBackgroundColor: 'rgba(34, 211, 238, 0.2)' },
       },
       handleScroll: { vertTouchDrag: false },
     });
 
-    // Glowing area series - laser-engraved path
     const series = chart.addSeries(AreaSeries, {
-      topColor: 'rgba(34, 211, 238, 0.15)',
+      topColor: 'rgba(34, 211, 238, 0.1)',
       bottomColor: 'rgba(34, 211, 238, 0.01)',
       lineColor: '#22d3ee',
-      lineWidth: 2,
+      lineWidth: 1.5,
       priceLineVisible: false,
       lastValueVisible: true,
-      lastValueColor: '#a5f3fc',
     });
 
     chartRef.current = chart;
     seriesRef.current = series;
 
-    const resizeObserver = new ResizeObserver(() => {
-      chart.timeScale().fitContent();
-    });
-
+    const resizeObserver = new ResizeObserver(() => chart.timeScale().fitContent());
     resizeObserver.observe(containerRef.current);
 
     return () => {
@@ -74,63 +63,50 @@ export default function PriceChart({ pair, data, events }) {
   }, []);
 
   useEffect(() => {
-    if (!seriesRef.current || !data?.length) {
-      return;
-    }
-
+    if (!seriesRef.current || !data?.length) return;
     seriesRef.current.setData(data);
     chartRef.current?.timeScale().fitContent();
   }, [data, pair]);
 
   useEffect(() => {
-    if (!seriesRef.current) {
-      return;
-    }
+    if (!seriesRef.current) return;
 
     const markers = (events || []).map((event) => ({
       time: event.time,
       position: event.sentiment === 'positive' ? 'belowBar' : 'aboveBar',
-      color: event.sentiment === 'positive'
-        ? '#34d399'
-        : '#fb923c',
+      color: event.sentiment === 'positive' ? '#34d399' : '#fb923c',
       shape: 'circle',
-      text: 'News',
+      size: 1,
     }));
 
     if (typeof markerApiRef.current?.setMarkers === 'function') {
       markerApiRef.current.setMarkers(markers);
       return;
     }
-
     try {
       markerApiRef.current = createSeriesMarkers(seriesRef.current, markers);
-    } catch {
-      // markers API may vary across minor releases
-    }
+    } catch {}
   }, [events, pair]);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium uppercase tracking-[0.24em] text-[var(--neo-text-muted)]">Live Price Context</p>
-          <h3 className="mt-1 text-xl font-semibold neo-text-embossed">{pair} price map</h3>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-[var(--text-muted)]">Price Context</p>
+          <h3 className="mt-0.5 text-lg font-semibold text-[var(--text-primary)]">{pair}</h3>
         </div>
-        <span
-          className="neo-badge text-xs font-medium text-cyan-200"
-          title="News markers are plotted on the same price series to expose timing overlap."
-        >
-          Event overlays active
+        <span className="badge text-[10px] text-cyan-300" style={{ background: 'var(--accent-cyan-soft)' }}>
+          Event overlays
         </span>
       </div>
 
-      <div ref={containerRef} className="h-[360px] w-full" />
+      <div ref={containerRef} className="h-[340px] w-full" />
 
       <div className="grid gap-3 md:grid-cols-3">
         {(events || []).slice(0, 3).map((event) => (
-          <div key={event.id} className="neo-pressed rounded-2xl p-3">
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--neo-text-muted)]">News event</p>
-            <p className="mt-2 text-sm font-medium leading-6 text-[var(--neo-text-secondary)]">{event.title}</p>
+          <div key={event.id} className="rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+            <p className="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">News</p>
+            <p className="mt-1 text-xs text-[var(--text-secondary)] leading-relaxed line-clamp-2">{event.title}</p>
           </div>
         ))}
       </div>
